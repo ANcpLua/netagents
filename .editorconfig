@@ -1,0 +1,24 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.{cs,csx}]
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = inside_namespace:silent
+csharp_style_namespace_declarations = file_scoped:error
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+csharp_style_prefer_pattern_matching = true:suggestion
+csharp_style_prefer_not_pattern = true:suggestion
+
+[*.{xml,csproj,props,targets,sln}]
+indent_size = 2
+
+[*.{json,toml,yml,yaml}]
+indent_size = 2

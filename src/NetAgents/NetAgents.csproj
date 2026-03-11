@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>netagents</ToolCommandName>
+    <PublishAot>true</PublishAot>
+    <RootNamespace>NetAgents</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Tomlyn" />
+    <PackageReference Include="Spectre.Console" />
+  </ItemGroup>
+</Project>
