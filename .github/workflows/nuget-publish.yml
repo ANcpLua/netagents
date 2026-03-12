@@ -131,11 +131,13 @@ jobs:
           name: packages
           path: artifacts/
       - uses: actions/setup-dotnet@v4
-      - name: Push to NuGet
+      - name: Push to NuGet (trusted publishing)
         run: |
+          OIDC_TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=nuget.org" | jq -r '.value')
           for pkg in artifacts/*.nupkg; do
             dotnet nuget push "$pkg" \
               --source https://api.nuget.org/v3/index.json \
-              --api-key ${{ secrets.NUGET_API_KEY }} \
+              --api-key "$OIDC_TOKEN" \
               --skip-duplicate
           done
