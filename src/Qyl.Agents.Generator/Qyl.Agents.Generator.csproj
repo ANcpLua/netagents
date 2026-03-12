@@ -32,6 +32,11 @@
     <Using Include="ANcpLua.Roslyn.Utilities.Contexts"/>
   </ItemGroup>
 
+  <!-- Place analyzer DLL in correct nupkg path (required when IncludeBuildOutput=false) -->
+  <ItemGroup>
+    <None Include="$(TargetPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+  </ItemGroup>
+
   <!-- Link polyfills for netstandard2.0 -->
   <ItemGroup>
     <Compile Include="..\..\shared\Polyfills\IsExternalInit.cs"
