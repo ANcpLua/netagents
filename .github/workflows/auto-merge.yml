@@ -26,7 +26,7 @@ jobs:
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr review --approve "$PR_URL"
+        run: gh pr review --approve "$PR_URL" || echo "::warning::Auto-approve skipped (requires allow-actions-approve-prs setting)"
       - name: Enable auto-merge for patch and minor
         if: steps.metadata.outputs.update-type != 'version-update:semver-major'
         env:
@@ -61,7 +61,7 @@ jobs:
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr review --approve "$PR_URL"
+        run: gh pr review --approve "$PR_URL" || echo "::warning::Auto-approve skipped (requires allow-actions-approve-prs setting)"
       - name: Enable auto-merge for Renovate
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
