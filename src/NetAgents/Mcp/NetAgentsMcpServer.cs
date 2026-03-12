@@ -121,6 +121,6 @@ public partial class NetAgentsMcpServer
         return parts.Count > 0 ? string.Join("\n", parts) : "All checks passed.";
     }
 
-    private static string FormatJson<T>(T value) =>
-        JsonSerializer.Serialize(value, new JsonSerializerOptions { WriteIndented = true });
+    private static string FormatJson(IReadOnlyList<SkillStatus> value) =>
+        JsonSerializer.Serialize(value, NetAgentsJsonContext.Default.IReadOnlyListSkillStatus);
 }

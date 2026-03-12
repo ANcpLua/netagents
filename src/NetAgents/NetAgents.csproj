@@ -13,8 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\ANcpLua.Roslyn.Utilities\src\Qyl.Agents\Qyl.Agents.csproj" />
-    <ProjectReference Include="..\..\..\ANcpLua.Roslyn.Utilities\src\Qyl.Agents.Generator\Qyl.Agents.Generator.csproj"
+    <ProjectReference Include="..\Qyl.Agents\Qyl.Agents.csproj" />
+    <ProjectReference Include="..\Qyl.Agents.Generator\Qyl.Agents.Generator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\ANcpLua.Roslyn.Utilities\src\ANcpLua.Roslyn.Utilities\ANcpLua.Roslyn.Utilities.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

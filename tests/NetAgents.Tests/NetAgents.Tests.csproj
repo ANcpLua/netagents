@@ -12,6 +12,5 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\NetAgents\NetAgents.csproj" />
-    <ProjectReference Include="..\..\..\ANcpLua.Roslyn.Utilities\src\ANcpLua.Roslyn.Utilities.Testing.AgentTesting\ANcpLua.Roslyn.Utilities.Testing.AgentTesting.csproj" />
   </ItemGroup>
 </Project>

@@ -8,10 +8,11 @@
   <ItemGroup>
     <PackageVersion Include="Tomlyn" Version="$(TomlynVersion)" />
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Test">
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="$(XunitV3Version)" />
     <PackageVersion Include="xunit.v3" Version="$(XunitV3Version)" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkVersion)" />
   </ItemGroup>
 </Project>

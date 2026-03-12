@@ -1,0 +1,252 @@
+using NetAgents.Config;
+using Xunit;
+
+namespace NetAgents.Tests.Config;
+
+// Mirrors dotagents/src/config/schema.test.ts — describe("agentsConfigSchema")
+public class SchemaTests
+{
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static AgentsConfig Minimal() => new(
+        Version: 1,
+        DefaultRepositorySource: RepositorySource.Github,
+        Project: null,
+        Symlinks: null,
+        Agents: [],
+        Skills: [],
+        Mcp: [],
+        Hooks: [],
+        Trust: null);
+
+    private static AgentsConfig WithSkill(string name, string source) =>
+        Minimal() with { Skills = [new RegularSkillDependency(name, source, null, null)] };
+
+    private static AgentsConfig WithMcp(McpConfig mcp) =>
+        Minimal() with { Mcp = [mcp] };
+
+    // ── Top-level parsing ─────────────────────────────────────────────────────
+
+    [Fact]
+    public void ParsesMinimalValidConfig()
+    {
+        var cfg = Minimal();
+        AgentsConfigValidator.Validate(cfg);
+        Assert.Equal(1, cfg.Version);
+        Assert.Empty(cfg.Skills);
+    }
+
+    [Fact]
+    public void DefaultsDefaultRepositorySourceToGithub()
+    {
+        Assert.Equal(RepositorySource.Github, Minimal().DefaultRepositorySource);
+    }
+
+    [Fact]
+    public void AcceptsDefaultRepositorySourceGitlab()
+    {
+        var cfg = Minimal() with { DefaultRepositorySource = RepositorySource.Gitlab };
+        Assert.Equal(RepositorySource.Gitlab, cfg.DefaultRepositorySource);
+    }
+
+    [Fact]
+    public void ParsesFullConfigWithAllFields()
+    {
+        var cfg = Minimal() with
+        {
+            Project = new ProjectConfig("test-project"),
+            Symlinks = new SymlinksConfig([".claude", ".cursor"]),
+            Skills =
+            [
+                new RegularSkillDependency("pdf-processing", "anthropics/skills", "v1.0.0", null),
+                new RegularSkillDependency("my-skill", "path:../shared/my-skill", null, null),
+            ],
+        };
+        AgentsConfigValidator.Validate(cfg);
+        Assert.Equal("test-project", cfg.Project?.Name);
+        Assert.Equal([".claude", ".cursor"], cfg.Symlinks?.Targets);
+        Assert.Equal(2, cfg.Skills.Count);
+    }
+
+    [Fact]
+    public void RejectsInvalidVersion()
+    {
+        var cfg = Minimal() with { Version = 2 };
+        Assert.Throws<ConfigException>(() => AgentsConfigValidator.Validate(cfg));
+    }
+
+    // ── Source specifiers ─────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("anthropics/skills")]           // owner/repo
+    [InlineData("anthropics/skills@v1.0.0")]    // owner/repo@ref
+    [InlineData("anthropics/skills@abc123")]    // owner/repo@sha
+    [InlineData("git:https://example.com/repo.git")]
+    [InlineData("git:ssh://git@example.com/repo.git")]
+    [InlineData("git:git@github.com:owner/repo.git")]
+    [InlineData("git:/tmp/local-repo")]
+    [InlineData("path:../relative/dir")]
+    [InlineData("https://github.com/owner/repo")]
+    [InlineData("https://github.com/owner/repo.git")]
+    [InlineData("git@github.com:owner/repo.git")]
+    [InlineData("https://gitlab.com/group/repo")]
+    [InlineData("git@gitlab.com:group/repo.git")]
+    [InlineData("https://gitlab.com/group/subgroup/repo")]
+    public void AcceptsValidSource(string source) =>
+        Assert.True(SkillDependencyHelpers.IsValidSkillSource(source), $"expected '{source}' to be valid");
+
+    [Theory]
+    [InlineData("git:--upload-pack=evil")]      // git: without safe protocol
+    [InlineData("git:relative/path")]           // git: with bare relative path
+    [InlineData("just-a-name")]                 // no slash
+    [InlineData("-bad/repo")]                   // owner starts with dash
+    [InlineData("owner/-bad")]                  // repo starts with dash
+    [InlineData("a/b/c")]                       // three-part path
+    [InlineData("https://github.com/-bad/repo")]// GitHub URL with dash-prefixed owner
+    public void RejectsInvalidSource(string source) =>
+        Assert.False(SkillDependencyHelpers.IsValidSkillSource(source), $"expected '{source}' to be invalid");
+
+    // ── Skill name validation ─────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("pdf-processing")]
+    [InlineData("my_skill")]
+    [InlineData("skill.v2")]
+    [InlineData("find-bugs")]
+    public void AcceptsValidSkillNames(string name) =>
+        Assert.True(SkillDependencyHelpers.IsValidSkillName(name));
+
+    [Theory]
+    [InlineData("../../etc/passwd")]
+    [InlineData("../evil")]
+    [InlineData("foo/bar")]
+    [InlineData(".hidden")]
+    [InlineData("-bad")]
+    public void RejectsInvalidSkillNames(string name) =>
+        Assert.False(SkillDependencyHelpers.IsValidSkillName(name));
+
+    [Fact]
+    public void ValidatorRejectsSkillWithInvalidName()
+    {
+        var cfg = Minimal() with
+        {
+            Skills = [new RegularSkillDependency("-bad", "owner/repo", null, null)],
+        };
+        Assert.Throws<ConfigException>(() => AgentsConfigValidator.Validate(cfg));
+    }
+
+    // ── agents field ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void AgentsDefaultsToEmpty() => Assert.Empty(Minimal().Agents);
+
+    [Fact]
+    public void AcceptsValidAgentIds()
+    {
+        var cfg = Minimal() with { Agents = ["claude", "cursor"] };
+        Assert.Equal(["claude", "cursor"], cfg.Agents);
+    }
+
+    // ── mcp field ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void McpDefaultsToEmpty() => Assert.Empty(Minimal().Mcp);
+
+    [Fact]
+    public void AcceptsStdioMcpServer()
+    {
+        var cfg = WithMcp(new McpConfig("github", "npx", ["-y", "@mcp/server-github"], null, null, []));
+        AgentsConfigValidator.Validate(cfg);
+        Assert.Equal("github", cfg.Mcp[0].Name);
+        Assert.Equal("npx", cfg.Mcp[0].Command);
+    }
+
+    [Fact]
+    public void AcceptsHttpMcpServer()
+    {
+        var cfg = WithMcp(new McpConfig("remote", null, null, "https://mcp.example.com/sse", null, []));
+        AgentsConfigValidator.Validate(cfg);
+        Assert.Equal("https://mcp.example.com/sse", cfg.Mcp[0].Url);
+    }
+
+    [Fact]
+    public void AcceptsMcpServerWithEnvVars()
+    {
+        var cfg = WithMcp(new McpConfig("gh", "npx", [], null, null, ["GITHUB_TOKEN"]));
+        AgentsConfigValidator.Validate(cfg);
+        Assert.Equal(["GITHUB_TOKEN"], cfg.Mcp[0].Env);
+    }
+
+    [Fact]
+    public void AcceptsMcpServerWithHeaders()
+    {
+        var headers = new Dictionary<string, string> { ["Authorization"] = "Bearer tok" };
+        var cfg = WithMcp(new McpConfig("r", null, null, "https://x.com", headers, []));
+        AgentsConfigValidator.Validate(cfg);
+    }
+
+    [Fact]
+    public void RejectsMcpWithBothCommandAndUrl()
+    {
+        var cfg = WithMcp(new McpConfig("bad", "x", null, "https://x.com", null, []));
+        Assert.Throws<ConfigException>(() => AgentsConfigValidator.Validate(cfg));
+    }
+
+    [Fact]
+    public void RejectsMcpWithNeitherCommandNorUrl()
+    {
+        var cfg = WithMcp(new McpConfig("bad", null, null, null, null, []));
+        Assert.Throws<ConfigException>(() => AgentsConfigValidator.Validate(cfg));
+    }
+
+    [Fact]
+    public void RejectsMcpWithEmptyName()
+    {
+        var cfg = WithMcp(new McpConfig("", "x", null, null, null, []));
+        Assert.Throws<ConfigException>(() => AgentsConfigValidator.Validate(cfg));
+    }
+
+    // ── trust section ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public void ParsesTrustWithAllFields()
+    {
+        var trust = new TrustConfig(false, ["getsentry", "anthropics"], ["external-org/one-approved"], ["git.corp.example.com"]);
+        var cfg = Minimal() with { Trust = trust };
+        AgentsConfigValidator.Validate(cfg);
+        Assert.Equal(trust, cfg.Trust);
+    }
+
+    [Fact]
+    public void TrustDefaultsForMissingArrays()
+    {
+        var trust = new TrustConfig(false, ["getsentry"], [], []);
+        var cfg = Minimal() with { Trust = trust };
+        AgentsConfigValidator.Validate(cfg);
+        Assert.Equal(["getsentry"], cfg.Trust!.GithubOrgs);
+        Assert.Empty(cfg.Trust.GithubRepos);
+        Assert.Empty(cfg.Trust.GitDomains);
+    }
+
+    [Fact]
+    public void ParsesAllowAllTrue()
+    {
+        var cfg = Minimal() with { Trust = new TrustConfig(true, [], [], []) };
+        Assert.True(cfg.Trust?.AllowAll);
+    }
+
+    [Fact]
+    public void TrustIsNullWhenAbsent() => Assert.Null(Minimal().Trust);
+
+    // ── backward compatibility ─────────────────────────────────────────────────
+
+    [Fact]
+    public void ParsesConfigWithoutAgentsOrMcpFields()
+    {
+        var cfg = Minimal() with { Skills = [new RegularSkillDependency("test", "owner/repo", null, null)] };
+        AgentsConfigValidator.Validate(cfg);
+        Assert.Empty(cfg.Agents);
+        Assert.Empty(cfg.Mcp);
+        Assert.Single(cfg.Skills);
+    }
+}

@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <RootNamespace>Qyl.Agents.Generator</RootNamespace>
+
+        <!-- Analyzer package settings -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <DevelopmentDependency>true</DevelopmentDependency>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
+        <Description>Source generator that transforms [Tool]-annotated methods into MCP-callable tools with OTel instrumentation.</Description>
+        <PackageTags>qyl;agents;mcp;source-generator;opentelemetry</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Using Include="System"/>
+        <Using Include="System.Collections.Generic"/>
+        <Using Include="System.Linq"/>
+        <Using Include="System.Threading"/>
+        <Using Include="System.Collections.Immutable"/>
+        <Using Include="System.Globalization"/>
+        <Using Include="Microsoft.CodeAnalysis"/>
+        <Using Include="Microsoft.CodeAnalysis.CSharp"/>
+        <Using Include="Microsoft.CodeAnalysis.CSharp.Syntax"/>
+        <Using Include="ANcpLua.Roslyn.Utilities"/>
+        <Using Include="ANcpLua.Roslyn.Utilities.Models"/>
+        <Using Include="ANcpLua.Roslyn.Utilities.Contexts"/>
+    </ItemGroup>
+
+    <!-- Link polyfills for netstandard2.0 -->
+    <ItemGroup>
+        <Compile Include="..\..\shared\Polyfills\IsExternalInit.cs"
+                 Link="Polyfills\IsExternalInit.cs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\ANcpLua.Roslyn.Utilities\src\ANcpLua.Roslyn.Utilities\ANcpLua.Roslyn.Utilities.csproj"
+                          PrivateAssets="all"/>
+        <ProjectReference Include="..\Qyl.Agents.Abstractions\Qyl.Agents.Abstractions.csproj"
+                          PrivateAssets="all"/>
+    </ItemGroup>
+</Project>
