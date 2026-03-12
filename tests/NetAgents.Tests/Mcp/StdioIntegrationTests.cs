@@ -1,16 +1,18 @@
-using System.Diagnostics;
-using System.Text.Json;
-using Xunit;
-
 namespace NetAgents.Tests.Mcp;
 
+using System.Diagnostics;
+using System.Text.Json;
+using NetAgents.Mcp;
+using Xunit;
+
+[Collection("SerialGit")]
 public sealed class StdioIntegrationTests
 {
     private static CancellationToken CT => TestContext.Current.CancellationToken;
 
     private static Process StartServer()
     {
-        var dllPath = typeof(NetAgents.Mcp.NetAgentsMcpServer).Assembly.Location;
+        var dllPath = typeof(NetAgentsMcpServer).Assembly.Location;
         var p = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -21,7 +23,7 @@ public sealed class StdioIntegrationTests
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
-                CreateNoWindow = true,
+                CreateNoWindow = true
             }
         };
         p.Start();
