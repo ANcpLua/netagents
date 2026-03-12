@@ -95,6 +95,128 @@ public sealed class ServerTests
             () => server.InstallAsync("/nonexistent-path-that-does-not-exist", CT));
     }
 
+    [Fact]
+    public async Task AddAsync_AddsSkillToConfig()
+    {
+        using var tmp = new TempDir();
+        var project = Path.Combine(tmp.Path, "project");
+        Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
+        var repoDir = await CreateRepo(tmp.Path, CT, "pdf");
+        File.WriteAllText(Path.Combine(project, "agents.toml"), "version = 1\n");
+        Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
+        try
+        {
+            var server = new NetAgentsMcpServer();
+            var result = await server.AddAsync(project, $"git:{repoDir}", CT);
+
+            Assert.Contains("Added skill: pdf", result);
+        }
+        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+    }
+
+    [Fact]
+    public async Task AddAsync_InvalidSourceThrows()
+    {
+        using var tmp = new TempDir();
+        var project = Path.Combine(tmp.Path, "project");
+        Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
+        File.WriteAllText(Path.Combine(project, "agents.toml"), "version = 1\n");
+
+        var server = new NetAgentsMcpServer();
+        await Assert.ThrowsAsync<AddException>(
+            () => server.AddAsync(project, "not-a-valid-source", CT));
+    }
+
+    [Fact]
+    public async Task RemoveAsync_RemovesExplicitSkill()
+    {
+        using var tmp = new TempDir();
+        var project = Path.Combine(tmp.Path, "project");
+        Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
+        var repoDir = await CreateRepo(tmp.Path, CT, "pdf");
+        File.WriteAllText(Path.Combine(project, "agents.toml"),
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+        Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
+        try
+        {
+            var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
+            await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
+
+            var server = new NetAgentsMcpServer();
+            var result = await server.RemoveAsync(project, "pdf", CT);
+
+            Assert.Contains("Removed skill: pdf", result);
+        }
+        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+    }
+
+    [Fact]
+    public async Task RemoveAsync_NotFoundThrows()
+    {
+        using var tmp = new TempDir();
+        var project = Path.Combine(tmp.Path, "project");
+        Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
+        File.WriteAllText(Path.Combine(project, "agents.toml"), "version = 1\n");
+
+        var server = new NetAgentsMcpServer();
+        await Assert.ThrowsAsync<RemoveException>(
+            () => server.RemoveAsync(project, "nonexistent", CT));
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WildcardReturnsHint()
+    {
+        using var tmp = new TempDir();
+        var project = Path.Combine(tmp.Path, "project");
+        Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
+        var repoDir = await CreateRepo(tmp.Path, CT, "pdf");
+        File.WriteAllText(Path.Combine(project, "agents.toml"),
+            $"version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"git:{repoDir}\"\n");
+        Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
+        try
+        {
+            var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
+            await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
+
+            var server = new NetAgentsMcpServer();
+            var result = await server.RemoveAsync(project, "pdf", CT);
+
+            Assert.Contains("wildcard", result);
+            Assert.Contains("exclude", result);
+        }
+        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+    }
+
+    [Fact]
+    public async Task SyncAsync_ReportsIssuesOnDesynchronizedState()
+    {
+        using var tmp = new TempDir();
+        var project = Path.Combine(tmp.Path, "project");
+        Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
+        var repoDir = await CreateRepo(tmp.Path, CT, "pdf");
+        File.WriteAllText(Path.Combine(project, "agents.toml"),
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+
+        var server = new NetAgentsMcpServer();
+        var result = await server.SyncAsync(project, CT);
+
+        Assert.Contains("missing", result);
+    }
+
+    [Fact]
+    public async Task DoctorAsync_ReportsChecks()
+    {
+        using var tmp = new TempDir();
+        var project = Path.Combine(tmp.Path, "project");
+        Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
+        File.WriteAllText(Path.Combine(project, "agents.toml"), "version = 1\n");
+
+        var server = new NetAgentsMcpServer();
+        var result = await server.DoctorAsync(project, false, CT);
+
+        Assert.Contains("[", result); // contains status markers like [pass] or [fail]
+    }
+
     private static async Task<string> CreateRepo(string parentDir, CancellationToken ct, params string[] skillPaths)
     {
         var repoDir = Path.Combine(parentDir, "repo");
