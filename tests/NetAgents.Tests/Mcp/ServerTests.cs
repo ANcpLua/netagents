@@ -65,6 +65,36 @@ public sealed class ServerTests
             () => server.ListAsync("/nonexistent-path-that-does-not-exist", CT));
     }
 
+    [Fact]
+    public async Task InstallAsync_InstallsDeclaredSkills()
+    {
+        using var tmp = new TempDir();
+        var project = Path.Combine(tmp.Path, "project");
+        Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
+        var repoDir = await CreateRepo(tmp.Path, CT, "pdf");
+        File.WriteAllText(Path.Combine(project, "agents.toml"),
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+        Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
+        try
+        {
+            var server = new NetAgentsMcpServer();
+            var result = await server.InstallAsync(project, CT);
+
+            Assert.Contains("Installed 1 skill(s)", result);
+            Assert.Contains("pdf", result);
+            Assert.True(Directory.Exists(Path.Combine(project, ".agents", "skills", "pdf")));
+        }
+        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+    }
+
+    [Fact]
+    public async Task InstallAsync_MissingConfigThrows()
+    {
+        var server = new NetAgentsMcpServer();
+        await Assert.ThrowsAsync<ConfigException>(
+            () => server.InstallAsync("/nonexistent-path-that-does-not-exist", CT));
+    }
+
     private static async Task<string> CreateRepo(string parentDir, CancellationToken ct, params string[] skillPaths)
     {
         var repoDir = Path.Combine(parentDir, "repo");
