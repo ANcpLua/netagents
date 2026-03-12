@@ -16,7 +16,8 @@ public sealed record InstallOptions(ScopeRoot Scope, bool Frozen = false, bool F
 public sealed record InstallResult(
     IReadOnlyList<string> Installed,
     IReadOnlyList<string> Pruned,
-    IReadOnlyList<(string Agent, string Message)> HookWarnings);
+    IReadOnlyList<(string Agent, string Message)> HookWarnings,
+    IReadOnlyList<string> MissingRootGitignoreEntries);
 
 public static class InstallCommand
 {
@@ -126,6 +127,7 @@ public static class InstallCommand
         }
 
         // Gitignore
+        IReadOnlyList<string> missingGitignore = [];
         if (scope.Scope == ScopeKind.Project)
         {
             var managedNames = installed.Where(name =>
@@ -136,9 +138,7 @@ public static class InstallCommand
             }).ToList();
             await GitignoreWriter.WriteAgentsGitignoreAsync(agentsDir, managedNames, ct).ConfigureAwait(false);
 
-            var missing = await GitignoreWriter.CheckRootGitignoreEntriesAsync(scope.Root, ct).ConfigureAwait(false);
-            if (missing.Count > 0)
-                Console.WriteLine($"Warning: {string.Join(", ", missing)} should be in .gitignore. Run 'netagents doctor --fix' to fix.");
+            missingGitignore = await GitignoreWriter.CheckRootGitignoreEntriesAsync(scope.Root, ct).ConfigureAwait(false);
         }
 
         // Symlinks
@@ -192,7 +192,7 @@ public static class InstallCommand
             hookWarnings.AddRange(warnings.Select(w => (w.Agent, w.Message)));
         }
 
-        return new InstallResult(installed, pruned, hookWarnings);
+        return new InstallResult(installed, pruned, hookWarnings, missingGitignore);
     }
 
     private sealed record ExpandedSkill(string Name, SkillDependency Dep, ResolvedSkill? Resolved = null);
@@ -276,6 +276,8 @@ public static class InstallCommand
 
             var result = await RunInstallAsync(new InstallOptions(scope, frozen, force), ct).ConfigureAwait(false);
 
+            if (result.MissingRootGitignoreEntries.Count > 0)
+                Console.WriteLine($"Warning: {string.Join(", ", result.MissingRootGitignoreEntries)} should be in .gitignore. Run 'netagents doctor --fix' to fix.");
             if (result.Installed.Count > 0)
                 Console.WriteLine($"Installed {result.Installed.Count} skill(s): {string.Join(", ", result.Installed)}");
             if (result.Pruned.Count > 0)
