@@ -61,7 +61,7 @@ jobs:
         with:
           repository: ANcpLua/ANcpLua.Roslyn.Utilities
           path: ANcpLua.Roslyn.Utilities
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: ANcpLua-netagents/global.json
       - name: Build
@@ -100,7 +100,7 @@ jobs:
         with:
           repository: ANcpLua/ANcpLua.Roslyn.Utilities
           path: ANcpLua.Roslyn.Utilities
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: ANcpLua-netagents/global.json
       - name: Test NetAgents
@@ -130,7 +130,7 @@ jobs:
         with:
           name: packages
           path: artifacts/
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
       - name: Push to NuGet (trusted publishing)
         run: |
           OIDC_TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
