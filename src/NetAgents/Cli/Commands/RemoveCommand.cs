@@ -1,9 +1,9 @@
-using NetAgents.Config;
-using NetAgents.Gitignore;
-using NetAgents.Lockfile;
-using NetAgents.Skills;
-
 namespace NetAgents.Cli.Commands;
+
+using Config;
+using Gitignore;
+using Lockfile;
+using Skills;
 
 public sealed class RemoveException(string message) : Exception(message);
 
@@ -32,7 +32,7 @@ public static class RemoveCommand
         {
             await ConfigWriter.RemoveSkillFromConfigAsync(configPath, skillName, ct).ConfigureAwait(false);
             if (Directory.Exists(skillDir))
-                Directory.Delete(skillDir, recursive: true);
+                Directory.Delete(skillDir, true);
 
             var lockfile = await LockfileLoader.LoadAsync(lockPath, ct).ConfigureAwait(false);
             if (lockfile is not null)
@@ -57,7 +57,7 @@ public static class RemoveCommand
                     .ConfigureAwait(false);
             }
 
-            return new RemoveResult(skillName, Removed: true, IsWildcard: false, WildcardSource: null, Hint: null);
+            return new RemoveResult(skillName, true, false, null, null);
         }
 
         // Check if skill is from a wildcard entry (via lockfile source matching)
@@ -67,9 +67,9 @@ public static class RemoveCommand
             var wildcardDep = config.Skills.OfType<WildcardSkillDependency>()
                 .FirstOrDefault(s => SkillResolver.SourcesMatch(s.Source, locked.Source));
             if (wildcardDep is not null)
-                return new RemoveResult(skillName, Removed: false, IsWildcard: true,
-                    WildcardSource: locked.Source,
-                    Hint: $"Skill \"{skillName}\" is provided by wildcard entry for \"{locked.Source}\". Add to exclude list instead.");
+                return new RemoveResult(skillName, false, true,
+                    locked.Source,
+                    $"Skill \"{skillName}\" is provided by wildcard entry for \"{locked.Source}\". Add to exclude list instead.");
         }
 
         throw new RemoveException($"Skill \"{skillName}\" not found in agents.toml.");
@@ -100,6 +100,7 @@ public static class RemoveCommand
             {
                 Console.WriteLine($"Removed skill: {skillName}");
             }
+
             return 0;
         }
         catch (Exception ex) when (ex is ScopeException or RemoveException)

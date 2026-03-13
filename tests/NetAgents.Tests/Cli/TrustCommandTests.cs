@@ -1,14 +1,23 @@
+namespace NetAgents.Tests.Cli;
+
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
 using Xunit;
 
-namespace NetAgents.Tests.Cli;
-
 file sealed class TempDir : IDisposable
 {
-    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
-    public TempDir() => Directory.CreateDirectory(Path);
-    public void Dispose() { if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true); }
+    public TempDir()
+    {
+        Directory.CreateDirectory(Path);
+    }
+
+    public string Path { get; } =
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+
+    public void Dispose()
+    {
+        if (Directory.Exists(Path)) Directory.Delete(Path, true);
+    }
 }
 
 public sealed class ClassifyTrustSourceTests
@@ -109,8 +118,8 @@ public sealed class TrustAddTests
         await File.WriteAllTextAsync(scope.ConfigPath,
             "version = 1\n\n[trust]\ngithub_orgs = [\"getsentry\"]\n", CT);
 
-        var ex = await Assert.ThrowsAsync<TrustCommandException>(
-            () => TrustCommand.RunTrustAddAsync(scope, "GetSentry", CT));
+        var ex = await Assert.ThrowsAsync<TrustCommandException>(() =>
+            TrustCommand.RunTrustAddAsync(scope, "GetSentry", CT));
         Assert.Contains("already in", ex.Message);
     }
 }
@@ -151,8 +160,8 @@ public sealed class TrustRemoveTests
         await File.WriteAllTextAsync(scope.ConfigPath,
             "version = 1\n\n[trust]\ngithub_orgs = [\"getsentry\"]\n", CT);
 
-        var ex = await Assert.ThrowsAsync<TrustCommandException>(
-            () => TrustCommand.RunTrustRemoveAsync(scope, "nope", CT));
+        var ex = await Assert.ThrowsAsync<TrustCommandException>(() =>
+            TrustCommand.RunTrustRemoveAsync(scope, "nope", CT));
         Assert.Contains("not found", ex.Message);
     }
 }
@@ -194,7 +203,8 @@ public sealed class GetTrustListTests
         Directory.CreateDirectory(tmp.Path);
         var configPath = Path.Combine(tmp.Path, "agents.toml");
         await File.WriteAllTextAsync(configPath,
-            "version = 1\n\n[trust]\ngithub_orgs = [\"getsentry\"]\ngithub_repos = [\"ext/repo\"]\ngit_domains = [\"git.corp.com\"]\n", CT);
+            "version = 1\n\n[trust]\ngithub_orgs = [\"getsentry\"]\ngithub_repos = [\"ext/repo\"]\ngit_domains = [\"git.corp.com\"]\n",
+            CT);
 
         var config = await ConfigLoader.LoadAsync(configPath, CT);
         var entries = (IReadOnlyList<TrustCommand.TrustListEntry>)TrustCommand.GetTrustList(config);

@@ -1,6 +1,6 @@
-using System.Text.RegularExpressions;
-
 namespace NetAgents.Skills;
+
+using System.Text.RegularExpressions;
 
 public sealed class SkillLoadException(string message) : Exception(message);
 
@@ -15,8 +15,8 @@ public static partial class SkillLoader
     private static partial Regex FrontmatterPattern();
 
     /// <summary>
-    /// Parse a SKILL.md file and extract YAML frontmatter.
-    /// Returns the parsed metadata (name, description, plus any extra fields).
+    ///     Parse a SKILL.md file and extract YAML frontmatter.
+    ///     Returns the parsed metadata (name, description, plus any extra fields).
     /// </summary>
     public static async Task<SkillMeta> LoadSkillMdAsync(
         string filePath,
@@ -52,8 +52,8 @@ public static partial class SkillLoader
     }
 
     /// <summary>
-    /// Minimal YAML parser for flat key: value frontmatter.
-    /// We avoid a full YAML dependency -- SKILL.md frontmatter is simple key-value pairs.
+    ///     Minimal YAML parser for flat key: value frontmatter.
+    ///     We avoid a full YAML dependency -- SKILL.md frontmatter is simple key-value pairs.
     /// </summary>
     internal static Dictionary<string, string> ParseSimpleYaml(string yaml)
     {
@@ -76,9 +76,7 @@ public static partial class SkillLoader
             if (value.Length >= 2 &&
                 ((value[0] == '"' && value[^1] == '"') ||
                  (value[0] == '\'' && value[^1] == '\'')))
-            {
                 value = value[1..^1];
-            }
 
             result[key] = value;
         }

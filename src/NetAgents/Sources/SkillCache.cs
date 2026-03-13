@@ -10,8 +10,8 @@ public static class SkillCache
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "netagents");
 
     /// <summary>
-    /// Get or populate the global cache for a git source.
-    /// Cache layout: ~/.local/netagents/{cacheKey}/ — TTL-refreshed shallow clone
+    ///     Get or populate the global cache for a git source.
+    ///     Cache layout: ~/.local/netagents/{cacheKey}/ — TTL-refreshed shallow clone
     /// </summary>
     public static async Task<CacheResult> EnsureCachedAsync(
         string url,

@@ -1,6 +1,6 @@
-using System.Runtime.InteropServices;
-
 namespace NetAgents.Agents;
+
+using System.Runtime.InteropServices;
 
 public sealed record UserMcpTarget(string FilePath, bool Shared);
 
@@ -12,21 +12,23 @@ public static class AgentPaths
 
         return agentId switch
         {
-            "claude" => new UserMcpTarget(Path.Combine(home, ".claude.json"), Shared: true),
-            "cursor" => new UserMcpTarget(Path.Combine(home, ".cursor", "mcp.json"), Shared: false),
-            "codex" => new UserMcpTarget(Path.Combine(home, ".codex", "config.toml"), Shared: true),
-            "vscode" => new UserMcpTarget(VsCodeMcpPath(home), Shared: false),
-            "opencode" => new UserMcpTarget(Path.Combine(home, ".config", "opencode", "opencode.json"), Shared: true),
-            _ => throw new ArgumentException($"Unknown agent for user-scope MCP: {agentId}", nameof(agentId)),
+            "claude" => new UserMcpTarget(Path.Combine(home, ".claude.json"), true),
+            "cursor" => new UserMcpTarget(Path.Combine(home, ".cursor", "mcp.json"), false),
+            "codex" => new UserMcpTarget(Path.Combine(home, ".codex", "config.toml"), true),
+            "vscode" => new UserMcpTarget(VsCodeMcpPath(home), false),
+            "opencode" => new UserMcpTarget(Path.Combine(home, ".config", "opencode", "opencode.json"), true),
+            _ => throw new ArgumentException($"Unknown agent for user-scope MCP: {agentId}", nameof(agentId))
         };
     }
 
-    public static McpTargetResolver UserMcpResolver() =>
-        (agentId, _) =>
+    public static McpTargetResolver UserMcpResolver()
+    {
+        return (agentId, _) =>
         {
             var target = GetUserMcpTarget(agentId);
             return new McpResolvedTarget(target.FilePath, target.Shared);
         };
+    }
 
     private static string VsCodeMcpPath(string home)
     {

@@ -1,7 +1,7 @@
-using System.Text;
-using Qyl.Agents.Generator.Models;
-
 namespace Qyl.Agents.Generator.Generation;
+
+using System.Text;
+using Models;
 
 internal static class SkillEmitter
 {

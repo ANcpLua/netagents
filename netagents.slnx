@@ -1,13 +1,13 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/NetAgents/NetAgents.csproj" />
-    <Project Path="src/Qyl.Agents.Abstractions/Qyl.Agents.Abstractions.csproj" />
-    <Project Path="src/Qyl.Agents.Generator/Qyl.Agents.Generator.csproj" />
-    <Project Path="src/Qyl.Agents/Qyl.Agents.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/NetAgents.Tests/NetAgents.Tests.csproj" />
-    <Project Path="tests/Qyl.Agents.Generator.Tests/Qyl.Agents.Generator.Tests.csproj" />
-    <Project Path="tests/Qyl.Agents.Tests/Qyl.Agents.Tests.csproj" />
-  </Folder>
+    <Folder Name="/src/">
+        <Project Path="src/NetAgents/NetAgents.csproj"/>
+        <Project Path="src/Qyl.Agents.Abstractions/Qyl.Agents.Abstractions.csproj"/>
+        <Project Path="src/Qyl.Agents.Generator/Qyl.Agents.Generator.csproj"/>
+        <Project Path="src/Qyl.Agents/Qyl.Agents.csproj"/>
+    </Folder>
+    <Folder Name="/tests/">
+        <Project Path="tests/NetAgents.Tests/NetAgents.Tests.csproj"/>
+        <Project Path="tests/Qyl.Agents.Generator.Tests/Qyl.Agents.Generator.Tests.csproj"/>
+        <Project Path="tests/Qyl.Agents.Tests/Qyl.Agents.Tests.csproj"/>
+    </Folder>
 </Solution>

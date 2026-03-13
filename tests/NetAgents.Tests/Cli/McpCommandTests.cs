@@ -1,14 +1,23 @@
+namespace NetAgents.Tests.Cli;
+
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
 using Xunit;
 
-namespace NetAgents.Tests.Cli;
-
 file sealed class TempDir : IDisposable
 {
-    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
-    public TempDir() => Directory.CreateDirectory(Path);
-    public void Dispose() { if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true); }
+    public TempDir()
+    {
+        Directory.CreateDirectory(Path);
+    }
+
+    public string Path { get; } =
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+
+    public void Dispose()
+    {
+        if (Directory.Exists(Path)) Directory.Delete(Path, true);
+    }
 }
 
 public sealed class ValidateMcpNameTests
@@ -18,16 +27,21 @@ public sealed class ValidateMcpNameTests
     [InlineData("my-server")]
     [InlineData("server.v2")]
     [InlineData("MCP_Server")]
-    public void AcceptsValidNames(string name) =>
-        McpCommand.ValidateMcpName(name); // should not throw
+    public void AcceptsValidNames(string name)
+    {
+        McpCommand.ValidateMcpName(name);
+        // should not throw
+    }
 
     [Theory]
     [InlineData("")]
     [InlineData("-bad")]
     [InlineData(".bad")]
     [InlineData("has space")]
-    public void RejectsInvalidNames(string name) =>
+    public void RejectsInvalidNames(string name)
+    {
         Assert.Throws<McpException>(() => McpCommand.ValidateMcpName(name));
+    }
 }
 
 public sealed class ParseHeaderTests
@@ -51,8 +65,10 @@ public sealed class ParseHeaderTests
     [Theory]
     [InlineData("no-colon")]
     [InlineData(":no-key")]
-    public void ThrowsOnMalformedHeader(string raw) =>
+    public void ThrowsOnMalformedHeader(string raw)
+    {
         Assert.Throws<McpException>(() => McpCommand.ParseHeader(raw));
+    }
 }
 
 public sealed class McpAddTests
@@ -77,8 +93,8 @@ public sealed class McpAddTests
         var scope = SetupScope(tmp.Path);
 
         await McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(
-            scope, "github", Command: "npx",
-            Args: ["-y", "@modelcontextprotocol/server-github"],
+            scope, "github", "npx",
+            ["-y", "@modelcontextprotocol/server-github"],
             Env: ["GITHUB_TOKEN"]), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
@@ -110,9 +126,9 @@ public sealed class McpAddTests
         using var tmp = new TempDir();
         var scope = SetupScope(tmp.Path);
 
-        await McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "github", Command: "npx"), CT);
-        var ex = await Assert.ThrowsAsync<McpException>(
-            () => McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "github", Command: "other"), CT));
+        await McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "github", "npx"), CT);
+        var ex = await Assert.ThrowsAsync<McpException>(() =>
+            McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "github", "other"), CT));
         Assert.Contains("already exists", ex.Message);
     }
 
@@ -122,9 +138,8 @@ public sealed class McpAddTests
         using var tmp = new TempDir();
         var scope = SetupScope(tmp.Path);
 
-        var ex = await Assert.ThrowsAsync<McpException>(
-            () => McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(
-                scope, "bad", Command: "npx", Url: "https://example.com"), CT));
+        var ex = await Assert.ThrowsAsync<McpException>(() => McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(
+            scope, "bad", "npx", Url: "https://example.com"), CT));
         Assert.Contains("Cannot specify both", ex.Message);
     }
 
@@ -134,8 +149,8 @@ public sealed class McpAddTests
         using var tmp = new TempDir();
         var scope = SetupScope(tmp.Path);
 
-        var ex = await Assert.ThrowsAsync<McpException>(
-            () => McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "bad"), CT));
+        var ex = await Assert.ThrowsAsync<McpException>(() =>
+            McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "bad"), CT));
         Assert.Contains("Must specify either", ex.Message);
     }
 
@@ -145,8 +160,8 @@ public sealed class McpAddTests
         using var tmp = new TempDir();
         var scope = SetupScope(tmp.Path);
 
-        await Assert.ThrowsAsync<McpException>(
-            () => McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "-bad", Command: "npx"), CT));
+        await Assert.ThrowsAsync<McpException>(() =>
+            McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "-bad", "npx"), CT));
     }
 }
 
@@ -171,7 +186,7 @@ public sealed class McpRemoveTests
         using var tmp = new TempDir();
         var scope = SetupScope(tmp.Path);
 
-        await McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "github", Command: "npx"), CT);
+        await McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "github", "npx"), CT);
         await McpCommand.RunMcpRemoveAsync(new McpCommand.McpRemoveOptions(scope, "github"), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
@@ -184,8 +199,8 @@ public sealed class McpRemoveTests
         using var tmp = new TempDir();
         var scope = SetupScope(tmp.Path);
 
-        var ex = await Assert.ThrowsAsync<McpException>(
-            () => McpCommand.RunMcpRemoveAsync(new McpCommand.McpRemoveOptions(scope, "nope"), CT));
+        var ex = await Assert.ThrowsAsync<McpException>(() =>
+            McpCommand.RunMcpRemoveAsync(new McpCommand.McpRemoveOptions(scope, "nope"), CT));
         Assert.Contains("not found", ex.Message);
     }
 
@@ -195,8 +210,8 @@ public sealed class McpRemoveTests
         using var tmp = new TempDir();
         var scope = SetupScope(tmp.Path);
 
-        await McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "a", Command: "cmd-a"), CT);
-        await McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "b", Command: "cmd-b"), CT);
+        await McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "a", "cmd-a"), CT);
+        await McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "b", "cmd-b"), CT);
         await McpCommand.RunMcpRemoveAsync(new McpCommand.McpRemoveOptions(scope, "a"), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
@@ -235,7 +250,7 @@ public sealed class GetMcpListTests
         using var tmp = new TempDir();
         var scope = SetupScope(tmp.Path);
         await McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(
-            scope, "github", Command: "npx", Env: ["TOKEN"]), CT);
+            scope, "github", "npx", Env: ["TOKEN"]), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
         var list = McpCommand.GetMcpList(config);

@@ -1,37 +1,51 @@
+namespace NetAgents.Tests.Cli;
+
 using NetAgents.Cli.Commands;
 using NetAgents.Lockfile;
-using NetAgents.Utils;
+using Utils;
 using Xunit;
-
-namespace NetAgents.Tests.Cli;
 
 file sealed class TempDir : IDisposable
 {
-    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
-    public TempDir() => Directory.CreateDirectory(Path);
-    public void Dispose() { try { if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true); } catch (IOException) { } }
+    public TempDir()
+    {
+        Directory.CreateDirectory(Path);
+    }
+
+    public string Path { get; } =
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+
+    public void Dispose()
+    {
+        if (!Directory.Exists(Path)) return;
+        foreach (var info in new DirectoryInfo(Path).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+            info.Attributes = FileAttributes.Normal;
+        Directory.Delete(Path, true);
+    }
 }
 
 file static class GitHelper
 {
-    public static async Task<string> CreateRepoWithSkills(string parentDir, CancellationToken ct, params string[] skillPaths)
+    public static async Task<string> CreateRepoWithSkills(string parentDir, CancellationToken ct,
+        params string[] skillPaths)
     {
         var repoDir = Path.Combine(parentDir, "repo");
         Directory.CreateDirectory(repoDir);
-        await ProcessRunner.RunAsync("git", ["init"], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["config", "user.email", "test@test.com"], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["config", "user.name", "Test"], cwd: repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["init"], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["config", "user.email", "test@test.com"], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["config", "user.name", "Test"], repoDir, ct: ct);
 
         foreach (var sp in skillPaths)
         {
             var dir = Path.Combine(repoDir, sp);
             Directory.CreateDirectory(dir);
             var name = Path.GetFileName(sp);
-            File.WriteAllText(Path.Combine(dir, "SKILL.md"), $"---\nname: {name}\ndescription: Test skill {name}\n---\n\n# {name}\n");
+            File.WriteAllText(Path.Combine(dir, "SKILL.md"),
+                $"---\nname: {name}\ndescription: Test skill {name}\n---\n\n# {name}\n");
         }
 
-        await ProcessRunner.RunAsync("git", ["add", "."], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], cwd: repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["add", "."], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], repoDir, ct: ct);
         return repoDir;
     }
 }
@@ -65,7 +79,10 @@ public sealed class InstallCommandTests
             Assert.Contains("pdf", result.Installed);
             Assert.True(File.Exists(Path.Combine(project, ".agents", "skills", "pdf", "SKILL.md")));
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -87,7 +104,10 @@ public sealed class InstallCommandTests
             Assert.NotNull(lockfile);
             Assert.True(lockfile.Skills.ContainsKey("pdf"));
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -117,10 +137,13 @@ public sealed class InstallCommandTests
         try
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
-            await Assert.ThrowsAsync<InstallException>(
-                () => InstallCommand.RunInstallAsync(new InstallOptions(scope, Frozen: true), CT));
+            await Assert.ThrowsAsync<InstallException>(() =>
+                InstallCommand.RunInstallAsync(new InstallOptions(scope, true), CT));
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -137,11 +160,14 @@ public sealed class InstallCommandTests
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
-            var result = await InstallCommand.RunInstallAsync(new InstallOptions(scope, Frozen: true), CT);
+            var result = await InstallCommand.RunInstallAsync(new InstallOptions(scope, true), CT);
 
             Assert.Contains("pdf", result.Installed);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -183,7 +209,10 @@ public sealed class InstallCommandTests
             Assert.Contains("pdf", result.Installed);
             Assert.Contains("review", result.Installed);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -204,6 +233,9 @@ public sealed class InstallCommandTests
             Assert.Contains("pdf", result.Installed);
             Assert.DoesNotContain("review", result.Installed);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 }

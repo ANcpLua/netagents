@@ -1,8 +1,8 @@
-using System.Text.RegularExpressions;
-using NetAgents.Config;
-using NetAgents.Sources;
-
 namespace NetAgents.Skills;
+
+using System.Text.RegularExpressions;
+using Config;
+using Sources;
 
 public sealed class ResolveException(string message) : Exception(message);
 
@@ -24,7 +24,12 @@ public sealed record NamedResolvedSkill(string Name, ResolvedSkill Skill);
 
 // ── Parsed source ────────────────────────────────────────────────────────────
 
-public enum SourceType { Github, Git, Local }
+public enum SourceType
+{
+    Github,
+    Git,
+    Local
+}
 
 public sealed record ParsedSource(
     SourceType Type,
@@ -45,12 +50,14 @@ public static partial class SkillResolver
     [GeneratedRegex(@"\.git$")]
     private static partial Regex DotGitSuffix();
 
-    public static bool IsExplicitSourceSpecifier(string specifier) =>
-        specifier.StartsWith("path:", StringComparison.Ordinal) ||
-        specifier.StartsWith("git:", StringComparison.Ordinal) ||
-        specifier.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-        specifier.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
-        specifier.StartsWith("git@", StringComparison.Ordinal);
+    public static bool IsExplicitSourceSpecifier(string specifier)
+    {
+        return specifier.StartsWith("path:", StringComparison.Ordinal) ||
+               specifier.StartsWith("git:", StringComparison.Ordinal) ||
+               specifier.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+               specifier.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+               specifier.StartsWith("git@", StringComparison.Ordinal);
+    }
 
     public static (string Owner, string Repo, string? Ref)? ParseOwnerRepoShorthand(string specifier)
     {
@@ -73,8 +80,8 @@ public static partial class SkillResolver
     }
 
     /// <summary>
-    /// Expand owner/repo shorthand according to defaultRepositorySource.
-    /// Returns input unchanged for explicit sources or non-shorthand values.
+    ///     Expand owner/repo shorthand according to defaultRepositorySource.
+    ///     Returns input unchanged for explicit sources or non-shorthand values.
     /// </summary>
     public static string ApplyDefaultRepositorySource(
         string specifier,
@@ -94,7 +101,7 @@ public static partial class SkillResolver
     }
 
     /// <summary>
-    /// Parse a source string into its components.
+    ///     Parse a source string into its components.
     /// </summary>
     public static ParsedSource ParseSource(string source)
     {
@@ -102,7 +109,7 @@ public static partial class SkillResolver
             return new ParsedSource(SourceType.Local, Path: source[5..]);
 
         if (source.StartsWith("git:", StringComparison.Ordinal))
-            return new ParsedSource(SourceType.Git, Url: source[4..]);
+            return new ParsedSource(SourceType.Git, source[4..]);
 
         // GitHub HTTPS or SSH URL
         var ghMatch = SourcePatterns.GithubHttpsUrl().Match(source);
@@ -116,11 +123,11 @@ public static partial class SkillResolver
                 : withoutRef;
             return new ParsedSource(
                 SourceType.Github,
-                Url: $"https://github.com/{owner}/{repo}.git",
-                CloneUrl: cloneUrl,
-                Owner: owner,
-                Repo: repo,
-                Ref: @ref);
+                $"https://github.com/{owner}/{repo}.git",
+                cloneUrl,
+                owner,
+                repo,
+                @ref);
         }
 
         // GitLab HTTPS or SSH URL
@@ -135,11 +142,11 @@ public static partial class SkillResolver
                 : withoutRef;
             return new ParsedSource(
                 SourceType.Git,
-                Url: $"https://gitlab.com/{owner}/{repo}.git",
-                CloneUrl: cloneUrl,
-                Owner: owner,
-                Repo: repo,
-                Ref: @ref);
+                $"https://gitlab.com/{owner}/{repo}.git",
+                cloneUrl,
+                owner,
+                repo,
+                @ref);
         }
 
         // owner/repo or owner/repo@ref shorthand -- no cloneUrl
@@ -150,7 +157,7 @@ public static partial class SkillResolver
 
         return new ParsedSource(
             SourceType.Github,
-            Url: $"https://github.com/{splitParts[0]}/{splitParts[1]}.git",
+            $"https://github.com/{splitParts[0]}/{splitParts[1]}.git",
             Owner: splitParts[0],
             Repo: splitParts[1],
             Ref: refVal);
@@ -166,11 +173,13 @@ public static partial class SkillResolver
     }
 
     /// <summary>Compare two source strings for equivalence (normalizes hosted URLs to owner/repo).</summary>
-    public static bool SourcesMatch(string a, string b) =>
-        string.Equals(NormalizeSource(a), NormalizeSource(b), StringComparison.Ordinal);
+    public static bool SourcesMatch(string a, string b)
+    {
+        return string.Equals(NormalizeSource(a), NormalizeSource(b), StringComparison.Ordinal);
+    }
 
     /// <summary>
-    /// Resolve a skill dependency to a concrete directory on disk.
+    ///     Resolve a skill dependency to a concrete directory on disk.
     /// </summary>
     public static async Task<ResolvedSkill> ResolveSkillAsync(
         string skillName,
@@ -207,7 +216,7 @@ public static partial class SkillResolver
         if (dep.Path is not null)
         {
             var meta = await SkillLoader.LoadSkillMdAsync(
-                System.IO.Path.Combine(cached.RepoDir, dep.Path, "SKILL.md"), ct).ConfigureAwait(false);
+                Path.Combine(cached.RepoDir, dep.Path, "SKILL.md"), ct).ConfigureAwait(false);
             discovered = new DiscoveredSkill(dep.Path, meta);
         }
         else
@@ -217,11 +226,9 @@ public static partial class SkillResolver
         }
 
         if (discovered is null)
-        {
             throw new ResolveException(
                 $"Skill \"{skillName}\" not found in {dep.Source}. " +
                 "Tried conventional directories. Use the 'path' field to specify the location explicitly.");
-        }
 
         return new ResolvedGitSkill(
             dep.Source,
@@ -229,12 +236,12 @@ public static partial class SkillResolver
             discovered.Path,
             @ref,
             cached.Commit,
-            System.IO.Path.Combine(cached.RepoDir, discovered.Path));
+            Path.Combine(cached.RepoDir, discovered.Path));
     }
 
     /// <summary>
-    /// Resolve a wildcard dependency: discover all skills from a source and return them.
-    /// Excludes are filtered out. Skill names are validated to prevent path traversal.
+    ///     Resolve a wildcard dependency: discover all skills from a source and return them.
+    ///     Excludes are filtered out. Skill names are validated to prevent path traversal.
     /// </summary>
     public static async Task<IReadOnlyList<NamedResolvedSkill>> ResolveWildcardSkillsAsync(
         WildcardSkillDependency dep,
@@ -259,7 +266,7 @@ public static partial class SkillResolver
                             SourcePatterns.ValidSkillName().IsMatch(d.Meta.Name))
                 .Select(d => new NamedResolvedSkill(
                     d.Meta.Name,
-                    new ResolvedLocalSkill(dep.Source, System.IO.Path.Combine(skillDir, d.Path))))
+                    new ResolvedLocalSkill(dep.Source, Path.Combine(skillDir, d.Path))))
                 .ToList();
         }
 
@@ -288,12 +295,14 @@ public static partial class SkillResolver
                     d.Path,
                     @ref,
                     cached.Commit,
-                    System.IO.Path.Combine(cached.RepoDir, d.Path))))
+                    Path.Combine(cached.RepoDir, d.Path))))
             .ToList();
     }
 
-    private static (string Owner, string Repo, string? Ref) ExtractGroups(Match match) =>
-        (match.Groups[1].Value,
-         match.Groups[2].Value,
-         match.Groups[3].Success && match.Groups[3].Value.Length > 0 ? match.Groups[3].Value : null);
+    private static (string Owner, string Repo, string? Ref) ExtractGroups(Match match)
+    {
+        return (match.Groups[1].Value,
+            match.Groups[2].Value,
+            match.Groups[3].Success && match.Groups[3].Value.Length > 0 ? match.Groups[3].Value : null);
+    }
 }

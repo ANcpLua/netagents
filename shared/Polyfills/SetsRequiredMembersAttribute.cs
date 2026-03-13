@@ -4,11 +4,11 @@
 
 #nullable enable
 
-using System.ComponentModel;
-
 #if !NET7_0_OR_GREATER
 
 namespace System.Diagnostics.CodeAnalysis;
+
+using ComponentModel;
 
 /// <summary>
 ///     Specifies that the constructor sets all required members for the current type,

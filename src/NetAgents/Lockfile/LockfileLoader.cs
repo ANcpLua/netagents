@@ -1,7 +1,7 @@
-using Tomlyn.Syntax;
-using Tomlyn.Parsing;
-
 namespace NetAgents.Lockfile;
+
+using Tomlyn.Parsing;
+using Tomlyn.Syntax;
 
 public sealed class LockfileException(string message) : Exception(message);
 
@@ -20,7 +20,9 @@ public static class LockfileLoader
         }
 
         var doc = SyntaxParser.Parse(raw);
-        return doc.HasErrors ? throw new LockfileException($"Invalid TOML in lockfile: {doc.Diagnostics}") : ParseDocument(doc);
+        return doc.HasErrors
+            ? throw new LockfileException($"Invalid TOML in lockfile: {doc.Diagnostics}")
+            : ParseDocument(doc);
     }
 
     private static LockfileData ParseDocument(DocumentSyntax doc)
@@ -85,8 +87,13 @@ public static class LockfileLoader
         return new LockedGitSkill(source, resolvedUrl, resolvedPath, resolvedRef);
     }
 
-    private static string GetKeyName(KeySyntax? key) => BareKeyToString(key?.Key);
+    private static string GetKeyName(KeySyntax? key)
+    {
+        return BareKeyToString(key?.Key);
+    }
 
-    private static string BareKeyToString(BareKeyOrStringValueSyntax? key) =>
-        key?.ToString().Trim() ?? "";
+    private static string BareKeyToString(BareKeyOrStringValueSyntax? key)
+    {
+        return key?.ToString().Trim() ?? "";
+    }
 }

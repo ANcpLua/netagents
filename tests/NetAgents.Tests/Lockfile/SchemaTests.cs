@@ -1,7 +1,7 @@
+namespace NetAgents.Tests.Lockfile;
+
 using NetAgents.Lockfile;
 using Xunit;
-
-namespace NetAgents.Tests.Lockfile;
 
 public class SchemaTests
 {
@@ -19,14 +19,14 @@ public class SchemaTests
     public async Task ParsesLockfileWithGitSkill()
     {
         const string toml = """
-            version = 1
+                            version = 1
 
-            [skills.pdf-processing]
-            source = "anthropics/skills"
-            resolved_url = "https://github.com/anthropics/skills.git"
-            resolved_path = "pdf-processing"
-            resolved_ref = "v1.2.0"
-            """;
+                            [skills.pdf-processing]
+                            source = "anthropics/skills"
+                            resolved_url = "https://github.com/anthropics/skills.git"
+                            resolved_path = "pdf-processing"
+                            resolved_ref = "v1.2.0"
+                            """;
 
         var result = await LockfileLoader.LoadAsync(WriteToTemp(toml), TestContext.Current.CancellationToken);
         Assert.NotNull(result);
@@ -37,11 +37,11 @@ public class SchemaTests
     public async Task ParsesLockfileWithLocalSkill()
     {
         const string toml = """
-            version = 1
+                            version = 1
 
-            [skills.my-skill]
-            source = "path:../shared/my-skill"
-            """;
+                            [skills.my-skill]
+                            source = "path:../shared/my-skill"
+                            """;
 
         var result = await LockfileLoader.LoadAsync(WriteToTemp(toml), TestContext.Current.CancellationToken);
         Assert.NotNull(result);
@@ -60,13 +60,13 @@ public class SchemaTests
     public async Task ParsesGitSkillWithoutResolvedRef()
     {
         const string toml = """
-            version = 1
+                            version = 1
 
-            [skills.my-skill]
-            source = "org/repo"
-            resolved_url = "https://github.com/org/repo.git"
-            resolved_path = "my-skill"
-            """;
+                            [skills.my-skill]
+                            source = "org/repo"
+                            resolved_url = "https://github.com/org/repo.git"
+                            resolved_path = "my-skill"
+                            """;
 
         var result = await LockfileLoader.LoadAsync(WriteToTemp(toml), TestContext.Current.CancellationToken);
         Assert.NotNull(result);

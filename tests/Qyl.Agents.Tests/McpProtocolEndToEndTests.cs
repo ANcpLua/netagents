@@ -1,10 +1,10 @@
+namespace Qyl.Agents.Tests;
+
 using System.Diagnostics;
 using System.Text.Json;
 using ANcpLua.Roslyn.Utilities.Testing.AgentTesting;
-using Qyl.Agents.Protocol;
+using Protocol;
 using Xunit;
-
-namespace Qyl.Agents.Tests;
 
 public sealed class McpProtocolEndToEndTests
 {
@@ -27,7 +27,7 @@ public sealed class McpProtocolEndToEndTests
         Assert.NotNull(response.Result);
 
         var serverInfo = response.Result.Value.GetProperty("serverInfo");
-        Assert.Equal("calc-server", serverInfo.GetProperty("name").GetString());
+        Assert.Equal((string?)"calc-server", (string?)serverInfo.GetProperty("name").GetString());
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class McpProtocolEndToEndTests
 
         var content = response.Result!.Value.GetProperty("content");
         var text = content[0].GetProperty("text").GetString();
-        Assert.Equal("7", text);
+        Assert.Equal((string?)"7", (string?)text);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed class McpProtocolEndToEndTests
         Assert.NotNull(response);
         var content = response!.Result!.Value.GetProperty("content");
         var text = content[0].GetProperty("text").GetString();
-        Assert.Equal("30", text);
+        Assert.Equal((string?)"30", (string?)text);
     }
 
     [Fact]

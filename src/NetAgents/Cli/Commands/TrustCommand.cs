@@ -1,6 +1,8 @@
-using NetAgents.Config;
-
 namespace NetAgents.Cli.Commands;
+
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Config;
 
 public sealed class TrustCommandException(string message) : Exception(message);
 
@@ -22,7 +24,7 @@ public static class TrustCommand
             "github_orgs" => config.Trust?.GithubOrgs ?? [],
             "github_repos" => config.Trust?.GithubRepos ?? [],
             "git_domains" => config.Trust?.GitDomains ?? [],
-            _ => (IReadOnlyList<string>)[],
+            _ => (IReadOnlyList<string>)[]
         };
 
         if (existing.Any(e => string.Equals(e, value, StringComparison.OrdinalIgnoreCase)))
@@ -41,7 +43,7 @@ public static class TrustCommand
             "github_orgs" => config.Trust?.GithubOrgs ?? [],
             "github_repos" => config.Trust?.GithubRepos ?? [],
             "git_domains" => config.Trust?.GitDomains ?? [],
-            _ => (IReadOnlyList<string>)[],
+            _ => (IReadOnlyList<string>)[]
         };
 
         if (!existing.Any(e => string.Equals(e, value, StringComparison.OrdinalIgnoreCase)))
@@ -49,8 +51,6 @@ public static class TrustCommand
 
         await ConfigWriter.RemoveTrustSourceAsync(scope.ConfigPath, field, value, ct).ConfigureAwait(false);
     }
-
-    public sealed record TrustListEntry(string Type, string Value);
 
     public static object GetTrustList(AgentsConfig config)
     {
@@ -98,7 +98,7 @@ public static class TrustCommand
                 "add" => await TrustAddCliAsync(subArgs, scope, ct).ConfigureAwait(false),
                 "remove" => await TrustRemoveCliAsync(subArgs, scope, ct).ConfigureAwait(false),
                 "list" => await TrustListCliAsync(subArgs, scope, ct).ConfigureAwait(false),
-                _ => UnknownSubcommand(sub),
+                _ => UnknownSubcommand(sub)
             };
         }
         catch (TrustCommandException ex)
@@ -149,15 +149,16 @@ public static class TrustCommand
         {
             if (entries is string and "allow_all")
             {
-                var node = new System.Text.Json.Nodes.JsonObject { ["allow_all"] = true };
-                Console.WriteLine(node.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+                var node = new JsonObject { ["allow_all"] = true };
+                Console.WriteLine(node.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
             }
             else
             {
-                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
+                Console.WriteLine(JsonSerializer.Serialize(
                     (IReadOnlyList<TrustListEntry>)entries,
                     NetAgentsJsonContext.Default.IReadOnlyListTrustListEntry));
             }
+
             return 0;
         }
 
@@ -180,15 +181,17 @@ public static class TrustCommand
         return 0;
     }
 
-    private static void PrintTrustUsage() =>
+    private static void PrintTrustUsage()
+    {
         Console.Error.WriteLine("""
-            Usage: netagents trust <subcommand>
+                                Usage: netagents trust <subcommand>
 
-            Subcommands:
-              add      Add a trusted source (org, owner/repo, or domain)
-              remove   Remove a trusted source
-              list     Show trusted sources
-            """);
+                                Subcommands:
+                                  add      Add a trusted source (org, owner/repo, or domain)
+                                  remove   Remove a trusted source
+                                  list     Show trusted sources
+                                """);
+    }
 
     private static int UnknownSubcommand(string sub)
     {
@@ -196,4 +199,6 @@ public static class TrustCommand
         PrintTrustUsage();
         return 1;
     }
+
+    public sealed record TrustListEntry(string Type, string Value);
 }

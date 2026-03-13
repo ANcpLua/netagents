@@ -1,13 +1,13 @@
-using NetAgents.Symlinks;
-using NetAgents.Utils;
-using Xunit;
-
 namespace NetAgents.Tests.Symlinks;
+
+using NetAgents.Symlinks;
+using Utils;
+using Xunit;
 
 public class EnsureSkillsSymlinkTests : IAsyncLifetime
 {
-    private string _dir = null!;
     private string _agentsDir = null!;
+    private string _dir = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -20,7 +20,7 @@ public class EnsureSkillsSymlinkTests : IAsyncLifetime
     public async ValueTask DisposeAsync()
     {
         if (Directory.Exists(_dir))
-            Directory.Delete(_dir, recursive: true);
+            Directory.Delete(_dir, true);
         await ValueTask.CompletedTask;
     }
 
@@ -28,7 +28,8 @@ public class EnsureSkillsSymlinkTests : IAsyncLifetime
     public async Task CreatesSymlinkWhenTargetDirDoesNotExist()
     {
         var targetDir = Path.Combine(_dir, ".claude");
-        var result = await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
+        var result =
+            await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
 
         Assert.True(result.Created);
         Assert.Empty(result.Migrated);
@@ -44,9 +45,11 @@ public class EnsureSkillsSymlinkTests : IAsyncLifetime
     {
         var targetDir = Path.Combine(_dir, ".claude");
         Directory.CreateDirectory(targetDir);
-        await File.WriteAllTextAsync(Path.Combine(targetDir, "settings.json"), "{}", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(targetDir, "settings.json"), "{}",
+            TestContext.Current.CancellationToken);
 
-        var result = await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
+        var result =
+            await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
         Assert.True(result.Created);
 
         var entries = Directory.GetFileSystemEntries(targetDir).Select(Path.GetFileName).ToList();
@@ -59,7 +62,8 @@ public class EnsureSkillsSymlinkTests : IAsyncLifetime
     {
         var targetDir = Path.Combine(_dir, ".claude");
         await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
-        var result = await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
+        var result =
+            await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
         Assert.False(result.Created);
     }
 
@@ -72,7 +76,8 @@ public class EnsureSkillsSymlinkTests : IAsyncLifetime
         // Create a wrong symlink
         File.CreateSymbolicLink(Path.Combine(targetDir, "skills"), "/wrong/target");
 
-        var result = await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
+        var result =
+            await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
         Assert.True(result.Created);
 
         var fi = new FileInfo(Path.Combine(targetDir, "skills"));
@@ -90,7 +95,8 @@ public class EnsureSkillsSymlinkTests : IAsyncLifetime
             "---\nname: test\n---\n",
             TestContext.Current.CancellationToken);
 
-        var result = await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
+        var result =
+            await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
         Assert.True(result.Created);
         Assert.Contains("my-local-skill", result.Migrated);
 
@@ -110,9 +116,9 @@ public class EnsureSkillsSymlinkTests : IAsyncLifetime
         var ct = TestContext.Current.CancellationToken;
 
         // Initialize a git repo in the temp dir
-        await ProcessRunner.RunAsync("git", ["init"], cwd: _dir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["config", "user.email", "test@test.com"], cwd: _dir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["config", "user.name", "Test"], cwd: _dir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["init"], _dir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["config", "user.email", "test@test.com"], _dir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["config", "user.name", "Test"], _dir, ct: ct);
 
         // Create a real skills directory with a committed file
         var targetDir = Path.Combine(_dir, ".claude");
@@ -123,11 +129,11 @@ public class EnsureSkillsSymlinkTests : IAsyncLifetime
             "---\nname: test\n---\n",
             ct);
 
-        await ProcessRunner.RunAsync("git", ["add", "."], cwd: _dir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], cwd: _dir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["add", "."], _dir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], _dir, ct: ct);
 
         // Verify file is tracked before migration
-        var before = await ProcessRunner.RunAsync("git", ["ls-files", ".claude/skills/"], cwd: _dir, ct: ct);
+        var before = await ProcessRunner.RunAsync("git", ["ls-files", ".claude/skills/"], _dir, ct: ct);
         Assert.Contains("my-skill/SKILL.md", before.Stdout.Trim());
 
         // Run the symlink migration
@@ -136,7 +142,7 @@ public class EnsureSkillsSymlinkTests : IAsyncLifetime
         Assert.Contains("my-skill", result.Migrated);
 
         // Verify file is no longer in git index
-        var after = await ProcessRunner.RunAsync("git", ["ls-files", ".claude/skills/"], cwd: _dir, ct: ct);
+        var after = await ProcessRunner.RunAsync("git", ["ls-files", ".claude/skills/"], _dir, ct: ct);
         Assert.Equal("", after.Stdout.Trim());
 
         // Verify the skill was moved to .agents/skills/
@@ -148,8 +154,8 @@ public class EnsureSkillsSymlinkTests : IAsyncLifetime
 
 public class VerifySymlinksTests : IAsyncLifetime
 {
-    private string _dir = null!;
     private string _agentsDir = null!;
+    private string _dir = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -162,7 +168,7 @@ public class VerifySymlinksTests : IAsyncLifetime
     public async ValueTask DisposeAsync()
     {
         if (Directory.Exists(_dir))
-            Directory.Delete(_dir, recursive: true);
+            Directory.Delete(_dir, true);
         await ValueTask.CompletedTask;
     }
 
@@ -172,7 +178,8 @@ public class VerifySymlinksTests : IAsyncLifetime
         var targetDir = Path.Combine(_dir, ".claude");
         await SymlinkManager.EnsureSkillsSymlinkAsync(_agentsDir, targetDir, TestContext.Current.CancellationToken);
 
-        var issues = await SymlinkManager.VerifySymlinksAsync(_agentsDir, [targetDir], TestContext.Current.CancellationToken);
+        var issues =
+            await SymlinkManager.VerifySymlinksAsync(_agentsDir, [targetDir], TestContext.Current.CancellationToken);
         Assert.Empty(issues);
     }
 
@@ -180,7 +187,8 @@ public class VerifySymlinksTests : IAsyncLifetime
     public async Task ReportsMissingSymlink()
     {
         var targetDir = Path.Combine(_dir, ".claude");
-        var issues = await SymlinkManager.VerifySymlinksAsync(_agentsDir, [targetDir], TestContext.Current.CancellationToken);
+        var issues =
+            await SymlinkManager.VerifySymlinksAsync(_agentsDir, [targetDir], TestContext.Current.CancellationToken);
         Assert.Single(issues);
         Assert.Contains("does not exist", issues[0].Issue);
     }
@@ -191,7 +199,8 @@ public class VerifySymlinksTests : IAsyncLifetime
         var targetDir = Path.Combine(_dir, ".claude");
         Directory.CreateDirectory(Path.Combine(targetDir, "skills"));
 
-        var issues = await SymlinkManager.VerifySymlinksAsync(_agentsDir, [targetDir], TestContext.Current.CancellationToken);
+        var issues =
+            await SymlinkManager.VerifySymlinksAsync(_agentsDir, [targetDir], TestContext.Current.CancellationToken);
         Assert.Single(issues);
         Assert.Contains("not a symlink", issues[0].Issue);
     }

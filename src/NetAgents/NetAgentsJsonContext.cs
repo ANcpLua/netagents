@@ -1,7 +1,7 @@
-using System.Text.Json.Serialization;
-using NetAgents.Cli.Commands;
-
 namespace NetAgents;
+
+using System.Text.Json.Serialization;
+using Cli.Commands;
 
 [JsonSourceGenerationOptions(WriteIndented = true)]
 [JsonSerializable(typeof(IReadOnlyList<SkillStatus>))]

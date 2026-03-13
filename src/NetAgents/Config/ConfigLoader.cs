@@ -1,7 +1,7 @@
+namespace NetAgents.Config;
+
 using Tomlyn.Parsing;
 using Tomlyn.Syntax;
-
-namespace NetAgents.Config;
 
 public static class ConfigLoader
 {
@@ -53,7 +53,7 @@ public static class ConfigLoader
                     defaultRepoSource = sv.Value switch
                     {
                         "gitlab" => RepositorySource.Gitlab,
-                        _ => RepositorySource.Github,
+                        _ => RepositorySource.Github
                     };
                     break;
             }
@@ -92,6 +92,7 @@ public static class ConfigLoader
                             trust = ParseTrustTable(table);
                             break;
                     }
+
                     break;
 
                 case TableArraySyntax arrayTable:
@@ -108,20 +109,21 @@ public static class ConfigLoader
                             hooks.Add(ParseHookEntry(arrayTable));
                             break;
                     }
+
                     break;
             }
         }
 
         return new AgentsConfig(
-            Version: version.Value,
-            DefaultRepositorySource: defaultRepoSource,
-            Project: project,
-            Symlinks: symlinks,
-            Agents: agents,
-            Skills: skills,
-            Mcp: mcp,
-            Hooks: hooks,
-            Trust: trust);
+            version.Value,
+            defaultRepoSource,
+            project,
+            symlinks,
+            agents,
+            skills,
+            mcp,
+            hooks,
+            trust);
     }
 
     private static SkillDependency ParseSkillEntry(TableArraySyntax table)
@@ -152,12 +154,12 @@ public static class ConfigLoader
         var headers = ExtractStringDictField(table, "headers");
 
         return new McpConfig(
-            Name: name,
-            Command: command,
-            Args: args.Count > 0 ? args : null,
-            Url: url,
-            Headers: headers.Count > 0 ? headers : null,
-            Env: env);
+            name,
+            command,
+            args.Count > 0 ? args : null,
+            url,
+            headers.Count > 0 ? headers : null,
+            env);
     }
 
     private static HookConfig ParseHookEntry(TableArraySyntax table)
@@ -173,7 +175,7 @@ public static class ConfigLoader
             "PostToolUse" => HookEvent.PostToolUse,
             "UserPromptSubmit" => HookEvent.UserPromptSubmit,
             "Stop" => HookEvent.Stop,
-            _ => throw new ConfigException($"Unknown hook event: '{eventStr}'"),
+            _ => throw new ConfigException($"Unknown hook event: '{eventStr}'")
         };
 
         return new HookConfig(hookEvent, matcher, command);
@@ -202,10 +204,10 @@ public static class ConfigLoader
         }
 
         return new TrustConfig(
-            AllowAll: allowAll,
-            GithubOrgs: ExtractStringArrayField(table, "github_orgs"),
-            GithubRepos: ExtractStringArrayField(table, "github_repos"),
-            GitDomains: ExtractStringArrayField(table, "git_domains"));
+            allowAll,
+            ExtractStringArrayField(table, "github_orgs"),
+            ExtractStringArrayField(table, "github_repos"),
+            ExtractStringArrayField(table, "git_domains"));
     }
 
     // ── Validation helpers ───────────────────────────────────────────────────────
@@ -229,6 +231,7 @@ public static class ConfigLoader
             if (kv.Value is StringValueSyntax { Value: not null } sv)
                 fields[GetKeyName(kv.Key)] = sv.Value;
         }
+
         return fields;
     }
 
@@ -241,6 +244,7 @@ public static class ConfigLoader
             if (kv.Value is StringValueSyntax { Value: not null } sv)
                 fields[GetKeyName(kv.Key)] = sv.Value;
         }
+
         return fields;
     }
 
@@ -253,6 +257,7 @@ public static class ConfigLoader
             if (kv.Value is ArraySyntax arr)
                 return ParseStringArray(arr);
         }
+
         return [];
     }
 
@@ -265,6 +270,7 @@ public static class ConfigLoader
             if (kv.Value is ArraySyntax arr)
                 return ParseStringArray(arr);
         }
+
         return [];
     }
 
@@ -277,6 +283,7 @@ public static class ConfigLoader
             if (kv.Value is InlineTableSyntax inlineTable)
                 return ParseInlineTable(inlineTable);
         }
+
         return new Dictionary<string, string>();
     }
 
@@ -290,6 +297,7 @@ public static class ConfigLoader
             if (kv.Value is StringValueSyntax { Value: not null } sv)
                 result[GetKeyName(kv.Key)] = sv.Value;
         }
+
         return result;
     }
 
@@ -302,11 +310,17 @@ public static class ConfigLoader
             if (item.Value is StringValueSyntax { Value: not null } sv)
                 result.Add(sv.Value);
         }
+
         return result;
     }
 
-    private static string GetKeyName(KeySyntax? key) => BareKeyToString(key?.Key);
+    private static string GetKeyName(KeySyntax? key)
+    {
+        return BareKeyToString(key?.Key);
+    }
 
-    private static string BareKeyToString(BareKeyOrStringValueSyntax? key) =>
-        key?.ToString()?.Trim() ?? "";
+    private static string BareKeyToString(BareKeyOrStringValueSyntax? key)
+    {
+        return key?.ToString()?.Trim() ?? "";
+    }
 }

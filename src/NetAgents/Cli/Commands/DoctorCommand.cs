@@ -1,13 +1,14 @@
-using NetAgents.Agents;
-using NetAgents.Config;
-using NetAgents.Gitignore;
-using NetAgents.Lockfile;
-using NetAgents.Symlinks;
-using NetAgents.Utils;
+namespace NetAgents.Cli.Commands;
+
+using System.Text.RegularExpressions;
+using Agents;
+using Config;
+using Gitignore;
+using Lockfile;
+using Symlinks;
 using Tomlyn.Parsing;
 using Tomlyn.Syntax;
-
-namespace NetAgents.Cli.Commands;
+using Utils;
 
 public sealed record DoctorCheck(string Name, string Status, string Message, Func<Task>? Fix = null);
 
@@ -42,20 +43,17 @@ public static class DoctorCommand
             doc.KeyValues.Any(kv => kv.Key?.ToString()?.Trim() == key);
 
         if (hasKey(configDoc, "pin"))
-        {
             checks.Add(new DoctorCheck("legacy pin field", "warn",
                 "agents.toml contains 'pin' which is no longer used in v1. Remove it.",
                 async () =>
                 {
                     var content = await File.ReadAllTextAsync(scope.ConfigPath, ct).ConfigureAwait(false);
                     var cleaned = string.Join("\n",
-                        content.Split('\n').Where(line => !System.Text.RegularExpressions.Regex.IsMatch(line, @"^\s*pin\s*=")));
+                        content.Split('\n').Where(line => !Regex.IsMatch(line, @"^\s*pin\s*=")));
                     await File.WriteAllTextAsync(scope.ConfigPath, cleaned, ct).ConfigureAwait(false);
                 }));
-        }
 
         if (hasKey(configDoc, "gitignore"))
-        {
             checks.Add(new DoctorCheck("legacy gitignore field", "warn",
                 "agents.toml contains 'gitignore' which is no longer used in v1. Gitignore is always managed. Remove it.",
                 async () =>
@@ -65,13 +63,12 @@ public static class DoctorCommand
                         content.Split('\n').Where(line =>
                         {
                             var trimmed = line.Trim();
-                            return !System.Text.RegularExpressions.Regex.IsMatch(line, @"^\s*gitignore\s*=") &&
+                            return !Regex.IsMatch(line, @"^\s*gitignore\s*=") &&
                                    !trimmed.StartsWith("# Managed skills are gitignored", StringComparison.Ordinal) &&
                                    !trimmed.StartsWith("# Check skills into git", StringComparison.Ordinal);
                         }));
                     await File.WriteAllTextAsync(scope.ConfigPath, cleaned, ct).ConfigureAwait(false);
                 }));
-        }
 
         // 3. Legacy fields in agents.lock
         var lockfile = await LockfileLoader.LoadAsync(scope.LockPath, ct).ConfigureAwait(false);
@@ -87,11 +84,10 @@ public static class DoctorCommand
                     .Where(t => t.Name?.ToString()?.Trim().StartsWith("skills.", StringComparison.Ordinal) == true)
                     .Any(t => t.Items.Any(kv => kv.Key?.ToString()?.Trim() is "commit" or "integrity"));
                 if (hasLegacy)
-                {
                     checks.Add(new DoctorCheck("legacy lockfile fields", "warn",
                         "agents.lock contains 'commit' or 'integrity' fields from v0. These are no longer used.",
-                        async () => await LockfileWriter.WriteAsync(scope.LockPath, lockfile, ct).ConfigureAwait(false)));
-                }
+                        async () => await LockfileWriter.WriteAsync(scope.LockPath, lockfile, ct)
+                            .ConfigureAwait(false)));
             }
         }
 
@@ -100,15 +96,12 @@ public static class DoctorCommand
         {
             var missing = await GitignoreWriter.CheckRootGitignoreEntriesAsync(scope.Root, ct).ConfigureAwait(false);
             if (missing.Count > 0)
-            {
                 checks.Add(new DoctorCheck("root .gitignore", "error",
                     $"Missing from .gitignore: {string.Join(", ", missing)}. These files should not be committed.",
-                    async () => await GitignoreWriter.EnsureRootGitignoreEntriesAsync(scope.Root, ct).ConfigureAwait(false)));
-            }
+                    async () => await GitignoreWriter.EnsureRootGitignoreEntriesAsync(scope.Root, ct)
+                        .ConfigureAwait(false)));
             else
-            {
                 checks.Add(new DoctorCheck("root .gitignore", "ok", "Root .gitignore is configured correctly."));
-            }
         }
 
         // 5. Tracked generated files
@@ -116,11 +109,11 @@ public static class DoctorCommand
         {
             var trackedFiles = await FindTrackedGeneratedFilesAsync(scope.Root, ct).ConfigureAwait(false);
             if (trackedFiles.Count > 0)
-            {
                 checks.Add(new DoctorCheck("tracked generated files", "warn",
                     $"Generated files checked into git: {string.Join(", ", trackedFiles)}. Remove them with 'git rm --cached'.",
-                    async () => await ProcessRunner.RunAsync("git", ["rm", "--cached", .. trackedFiles], cwd: scope.Root, ct: ct).ConfigureAwait(false)));
-            }
+                    async () => await ProcessRunner
+                        .RunAsync("git", ["rm", "--cached", .. trackedFiles], scope.Root, ct: ct)
+                        .ConfigureAwait(false)));
         }
 
         // 6. .agents/.gitignore exists
@@ -135,7 +128,8 @@ public static class DoctorCommand
                 var managedNames = GetManagedSkillNames(config, lockfile);
                 checks.Add(new DoctorCheck(".agents/.gitignore", "warn",
                     ".agents/.gitignore is missing. Run 'netagents install' or 'netagents sync' to regenerate.",
-                    async () => await GitignoreWriter.WriteAgentsGitignoreAsync(scope.AgentsDir, managedNames, ct).ConfigureAwait(false)));
+                    async () => await GitignoreWriter.WriteAgentsGitignoreAsync(scope.AgentsDir, managedNames, ct)
+                        .ConfigureAwait(false)));
             }
         }
 
@@ -148,12 +142,14 @@ public static class DoctorCommand
 
         // 8. Declared skills are installed
         var declaredNames = GetDeclaredSkillNames(config, lockfile);
-        var missingSkills = declaredNames.Where(name => !Directory.Exists(Path.Combine(scope.SkillsDir, name))).ToList();
+        var missingSkills = declaredNames.Where(name => !Directory.Exists(Path.Combine(scope.SkillsDir, name)))
+            .ToList();
         if (missingSkills.Count > 0)
             checks.Add(new DoctorCheck("installed skills", "error",
                 $"{missingSkills.Count} skill(s) not installed: {string.Join(", ", missingSkills)}. Run 'netagents install'."));
         else if (declaredNames.Count > 0)
-            checks.Add(new DoctorCheck("installed skills", "ok", $"All {declaredNames.Count} declared skill(s) installed."));
+            checks.Add(new DoctorCheck("installed skills", "ok",
+                $"All {declaredNames.Count} declared skill(s) installed."));
         else
             checks.Add(new DoctorCheck("installed skills", "ok", "No skills declared."));
 
@@ -189,16 +185,12 @@ public static class DoctorCommand
 
         // Apply fixes
         if (fix)
-        {
             foreach (var check in checks)
-            {
                 if (check.Status != "ok" && check.Fix is not null)
                 {
                     await check.Fix().ConfigureAwait(false);
                     fixed_++;
                 }
-            }
-        }
 
         return new DoctorResult(checks, fixed_);
     }
@@ -207,10 +199,9 @@ public static class DoctorCommand
     {
         var tracked = new List<string>();
         foreach (var file in GeneratedFiles)
-        {
             try
             {
-                var result = await ProcessRunner.RunAsync("git", ["ls-files", file], cwd: root, ct: ct)
+                var result = await ProcessRunner.RunAsync("git", ["ls-files", file], root, ct: ct)
                     .ConfigureAwait(false);
                 if (result.Stdout.Trim().Length > 0)
                     tracked.Add(file);
@@ -219,7 +210,7 @@ public static class DoctorCommand
             {
                 // Not a git repo or git not available
             }
-        }
+
         return tracked;
     }
 

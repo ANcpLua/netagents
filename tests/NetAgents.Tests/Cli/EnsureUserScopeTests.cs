@@ -1,23 +1,34 @@
+namespace NetAgents.Tests.Cli;
+
 using NetAgents.Agents;
 using NetAgents.Cli;
 using Xunit;
 
-namespace NetAgents.Tests.Cli;
-
 file sealed class TempDir : IDisposable
 {
-    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
-    public TempDir() => Directory.CreateDirectory(Path);
-    public void Dispose() { if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true); }
+    public TempDir()
+    {
+        Directory.CreateDirectory(Path);
+    }
+
+    public string Path { get; } =
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+
+    public void Dispose()
+    {
+        if (Directory.Exists(Path)) Directory.Delete(Path, true);
+    }
 }
 
 public sealed class EnsureUserScopeTests
 {
-    private static ScopeRoot UserScope(string home) =>
-        new(ScopeKind.User, home, home,
+    private static ScopeRoot UserScope(string home)
+    {
+        return new ScopeRoot(ScopeKind.User, home, home,
             Path.Combine(home, "agents.toml"),
             Path.Combine(home, "agents.lock"),
             Path.Combine(home, "skills"));
+    }
 
     [Fact]
     public async Task CreatesAgentsTomlAndSkillsDir_WhenUninitialized()

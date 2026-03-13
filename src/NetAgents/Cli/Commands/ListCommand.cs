@@ -1,8 +1,9 @@
-using NetAgents.Config;
-using NetAgents.Lockfile;
-using NetAgents.Skills;
-
 namespace NetAgents.Cli.Commands;
+
+using System.Text.Json;
+using Config;
+using Lockfile;
+using Skills;
 
 public sealed record SkillStatus(string Name, string Source, string Status, string? Wildcard = null);
 
@@ -26,7 +27,6 @@ public static class ListCommand
             skillEntries[dep.Name] = (dep.Source, null);
 
         if (lockfile is not null)
-        {
             foreach (var wDep in wildcardDeps)
             {
                 var excludeSet = new HashSet<string>(wDep.Exclude, StringComparer.Ordinal);
@@ -38,7 +38,6 @@ public static class ListCommand
                     skillEntries.TryAdd(name, (wDep.Source, wDep.Source));
                 }
             }
-        }
 
         var results = new List<SkillStatus>();
         foreach (var name in skillEntries.Keys.Order())
@@ -89,7 +88,7 @@ public static class ListCommand
 
         if (json)
         {
-            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(results,
+            Console.WriteLine(JsonSerializer.Serialize(results,
                 NetAgentsJsonContext.Default.IReadOnlyListSkillStatus));
             return 0;
         }
@@ -103,7 +102,7 @@ public static class ListCommand
                 "ok" => $"  + {s.Name}  {s.Source}{wildcard}",
                 "missing" => $"  x {s.Name}  {s.Source}{wildcard}  not installed",
                 "unlocked" => $"  ? {s.Name}  {s.Source}{wildcard}  not in lockfile",
-                _ => $"  {s.Name}  {s.Source}",
+                _ => $"  {s.Name}  {s.Source}"
             };
             Console.WriteLine(status);
         }

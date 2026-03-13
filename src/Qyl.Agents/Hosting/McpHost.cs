@@ -1,7 +1,7 @@
-using System.Text.Json;
-using Qyl.Agents.Protocol;
-
 namespace Qyl.Agents.Hosting;
+
+using System.Text.Json;
+using Protocol;
 
 /// <summary>
 ///     Hosts an MCP server over stdio (JSON-RPC over stdin/stdout).

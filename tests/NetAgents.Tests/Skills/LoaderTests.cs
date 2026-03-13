@@ -1,11 +1,13 @@
+namespace NetAgents.Tests.Skills;
+
 using NetAgents.Skills;
 using Xunit;
-
-namespace NetAgents.Tests.Skills;
 
 public class LoaderTests : IAsyncLifetime
 {
     private string _dir = null!;
+
+    private CancellationToken CT => TestContext.Current.CancellationToken;
 
     public async ValueTask InitializeAsync()
     {
@@ -17,27 +19,25 @@ public class LoaderTests : IAsyncLifetime
     public async ValueTask DisposeAsync()
     {
         if (Directory.Exists(_dir))
-            Directory.Delete(_dir, recursive: true);
+            Directory.Delete(_dir, true);
         await ValueTask.CompletedTask;
     }
-
-    private CancellationToken CT => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task ParsesValidSkillMdWithFrontmatter()
     {
         var skillMd = Path.Combine(_dir, "SKILL.md");
         await File.WriteAllTextAsync(skillMd, """
-            ---
-            name: pdf-processing
-            description: Extract and process PDF documents
-            license: MIT
-            ---
+                                              ---
+                                              name: pdf-processing
+                                              description: Extract and process PDF documents
+                                              license: MIT
+                                              ---
 
-            # PDF Processing
+                                              # PDF Processing
 
-            This skill handles PDF files.
-            """, CT);
+                                              This skill handles PDF files.
+                                              """, CT);
 
         var meta = await SkillLoader.LoadSkillMdAsync(skillMd, CT);
 
@@ -51,13 +51,13 @@ public class LoaderTests : IAsyncLifetime
     {
         var skillMd = Path.Combine(_dir, "SKILL.md");
         await File.WriteAllTextAsync(skillMd, """
-            ---
-            name: "my-skill"
-            description: 'A skill with quoted values'
-            ---
+                                              ---
+                                              name: "my-skill"
+                                              description: 'A skill with quoted values'
+                                              ---
 
-            Content.
-            """, CT);
+                                              Content.
+                                              """, CT);
 
         var meta = await SkillLoader.LoadSkillMdAsync(skillMd, CT);
 
@@ -68,8 +68,8 @@ public class LoaderTests : IAsyncLifetime
     [Fact]
     public async Task ThrowsForMissingFile()
     {
-        await Assert.ThrowsAsync<SkillLoadException>(
-            () => SkillLoader.LoadSkillMdAsync(Path.Combine(_dir, "nope.md"), CT));
+        await Assert.ThrowsAsync<SkillLoadException>(() =>
+            SkillLoader.LoadSkillMdAsync(Path.Combine(_dir, "nope.md"), CT));
     }
 
     [Fact]
@@ -78,8 +78,7 @@ public class LoaderTests : IAsyncLifetime
         var skillMd = Path.Combine(_dir, "SKILL.md");
         await File.WriteAllTextAsync(skillMd, "# No frontmatter here\n", CT);
 
-        await Assert.ThrowsAsync<SkillLoadException>(
-            () => SkillLoader.LoadSkillMdAsync(skillMd, CT));
+        await Assert.ThrowsAsync<SkillLoadException>(() => SkillLoader.LoadSkillMdAsync(skillMd, CT));
     }
 
     [Fact]
@@ -88,8 +87,7 @@ public class LoaderTests : IAsyncLifetime
         var skillMd = Path.Combine(_dir, "SKILL.md");
         await File.WriteAllTextAsync(skillMd, "---\ndescription: No name field\n---\n", CT);
 
-        await Assert.ThrowsAsync<SkillLoadException>(
-            () => SkillLoader.LoadSkillMdAsync(skillMd, CT));
+        await Assert.ThrowsAsync<SkillLoadException>(() => SkillLoader.LoadSkillMdAsync(skillMd, CT));
     }
 
     [Fact]
@@ -98,7 +96,6 @@ public class LoaderTests : IAsyncLifetime
         var skillMd = Path.Combine(_dir, "SKILL.md");
         await File.WriteAllTextAsync(skillMd, "---\nname: my-skill\n---\n", CT);
 
-        await Assert.ThrowsAsync<SkillLoadException>(
-            () => SkillLoader.LoadSkillMdAsync(skillMd, CT));
+        await Assert.ThrowsAsync<SkillLoadException>(() => SkillLoader.LoadSkillMdAsync(skillMd, CT));
     }
 }

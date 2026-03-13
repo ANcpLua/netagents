@@ -1,7 +1,7 @@
-using System.Text.RegularExpressions;
-using NetAgents.Config;
-
 namespace NetAgents.Trust;
+
+using System.Text.RegularExpressions;
+using Config;
 
 public sealed class TrustException(string message) : Exception(message);
 
@@ -11,8 +11,8 @@ public static partial class TrustValidator
     private static partial Regex ScpPattern();
 
     /// <summary>
-    /// Extract domain from a git URL.
-    /// Supports https://, ssh://, git://, scp-style (git@host:...), file:// (no domain).
+    ///     Extract domain from a git URL.
+    ///     Supports https://, ssh://, git://, scp-style (git@host:...), file:// (no domain).
     /// </summary>
     public static string? ExtractDomain(string url)
     {
@@ -29,9 +29,9 @@ public static partial class TrustValidator
     }
 
     /// <summary>
-    /// Validate that a source specifier is allowed by the trust configuration.
-    /// No trust config = allow all. allow_all = true = allow all.
-    /// Local path: sources always allowed. Otherwise must match org, repo, or domain.
+    ///     Validate that a source specifier is allowed by the trust configuration.
+    ///     No trust config = allow all. allow_all = true = allow all.
+    ///     Local path: sources always allowed. Otherwise must match org, repo, or domain.
     /// </summary>
     public static void ValidateTrustedSource(string source, TrustConfig? trust)
     {
@@ -62,15 +62,16 @@ public static partial class TrustValidator
 
             throw new TrustException(
                 $"""
-                Source "{source}" is not trusted. Allowed sources: {FormatAllowed(trust)}.
-                Run: netagents trust add {parsed.Owner!} (or `netagents trust add {parsed.Owner!}/{parsed.Repo!}` for just this repo)
-                """);
+                 Source "{source}" is not trusted. Allowed sources: {FormatAllowed(trust)}.
+                 Run: netagents trust add {parsed.Owner!} (or `netagents trust add {parsed.Owner!}/{parsed.Repo!}` for just this repo)
+                 """);
         }
 
         if (parsed.Type == SourceType.Git)
         {
             var domain = ExtractDomain(parsed.Url!)?.ToLowerInvariant();
-            if (domain is not null && trust.GitDomains.Any(d => string.Equals(d, domain, StringComparison.OrdinalIgnoreCase)))
+            if (domain is not null &&
+                trust.GitDomains.Any(d => string.Equals(d, domain, StringComparison.OrdinalIgnoreCase)))
                 return;
 
             var hint = domain is not null ? $"\nRun: netagents trust add {domain}" : "";
@@ -91,12 +92,6 @@ public static partial class TrustValidator
         return parts.Count > 0 ? string.Join("; ", parts) : "none";
     }
 
-    // ── Source parsing (mirrors dotagents parseSource for trust checks) ───────
-
-    private enum SourceType { Github, Git, Local }
-
-    private sealed record ParsedSource(SourceType Type, string? Owner, string? Repo, string? Url);
-
     private static ParsedSource ParseSource(string source)
     {
         if (source.StartsWith("path:", StringComparison.Ordinal))
@@ -107,15 +102,17 @@ public static partial class TrustValidator
 
         // GitHub/GitLab HTTPS or SSH URL patterns
         var githubMatch = SourcePatterns.GithubHttpsUrl().Match(source)
-                          is { Success: true } gm ? gm
-                          : SourcePatterns.GithubSshUrl().Match(source);
+            is { Success: true } gm
+            ? gm
+            : SourcePatterns.GithubSshUrl().Match(source);
         if (githubMatch.Success)
             return new ParsedSource(SourceType.Github, githubMatch.Groups[1].Value, githubMatch.Groups[2].Value, null);
 
         // GitLab URLs are treated as generic git sources (same as TS)
         var gitlabMatch = SourcePatterns.GitlabHttpsUrl().Match(source)
-                          is { Success: true } glm ? glm
-                          : SourcePatterns.GitlabSshUrl().Match(source);
+            is { Success: true } glm
+            ? glm
+            : SourcePatterns.GitlabSshUrl().Match(source);
         if (gitlabMatch.Success)
             return new ParsedSource(SourceType.Git, gitlabMatch.Groups[1].Value, gitlabMatch.Groups[2].Value,
                 $"https://gitlab.com/{gitlabMatch.Groups[1].Value}/{gitlabMatch.Groups[2].Value}.git");
@@ -129,4 +126,15 @@ public static partial class TrustValidator
 
         return new ParsedSource(SourceType.Git, null, null, source);
     }
+
+    // ── Source parsing (mirrors dotagents parseSource for trust checks) ───────
+
+    private enum SourceType
+    {
+        Github,
+        Git,
+        Local
+    }
+
+    private sealed record ParsedSource(SourceType Type, string? Owner, string? Repo, string? Url);
 }

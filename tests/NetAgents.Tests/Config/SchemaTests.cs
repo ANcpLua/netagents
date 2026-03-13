@@ -1,29 +1,36 @@
+namespace NetAgents.Tests.Config;
+
 using NetAgents.Config;
 using Xunit;
-
-namespace NetAgents.Tests.Config;
 
 // Mirrors dotagents/src/config/schema.test.ts — describe("agentsConfigSchema")
 public class SchemaTests
 {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private static AgentsConfig Minimal() => new(
-        Version: 1,
-        DefaultRepositorySource: RepositorySource.Github,
-        Project: null,
-        Symlinks: null,
-        Agents: [],
-        Skills: [],
-        Mcp: [],
-        Hooks: [],
-        Trust: null);
+    private static AgentsConfig Minimal()
+    {
+        return new AgentsConfig(
+            1,
+            RepositorySource.Github,
+            null,
+            null,
+            [],
+            [],
+            [],
+            [],
+            null);
+    }
 
-    private static AgentsConfig WithSkill(string name, string source) =>
-        Minimal() with { Skills = [new RegularSkillDependency(name, source, null, null)] };
+    private static AgentsConfig WithSkill(string name, string source)
+    {
+        return Minimal() with { Skills = [new RegularSkillDependency(name, source, null, null)] };
+    }
 
-    private static AgentsConfig WithMcp(McpConfig mcp) =>
-        Minimal() with { Mcp = [mcp] };
+    private static AgentsConfig WithMcp(McpConfig mcp)
+    {
+        return Minimal() with { Mcp = [mcp] };
+    }
 
     // ── Top-level parsing ─────────────────────────────────────────────────────
 
@@ -59,8 +66,8 @@ public class SchemaTests
             Skills =
             [
                 new RegularSkillDependency("pdf-processing", "anthropics/skills", "v1.0.0", null),
-                new RegularSkillDependency("my-skill", "path:../shared/my-skill", null, null),
-            ],
+                new RegularSkillDependency("my-skill", "path:../shared/my-skill", null, null)
+            ]
         };
         AgentsConfigValidator.Validate(cfg);
         Assert.Equal("test-project", cfg.Project?.Name);
@@ -78,9 +85,9 @@ public class SchemaTests
     // ── Source specifiers ─────────────────────────────────────────────────────
 
     [Theory]
-    [InlineData("anthropics/skills")]           // owner/repo
-    [InlineData("anthropics/skills@v1.0.0")]    // owner/repo@ref
-    [InlineData("anthropics/skills@abc123")]    // owner/repo@sha
+    [InlineData("anthropics/skills")] // owner/repo
+    [InlineData("anthropics/skills@v1.0.0")] // owner/repo@ref
+    [InlineData("anthropics/skills@abc123")] // owner/repo@sha
     [InlineData("git:https://example.com/repo.git")]
     [InlineData("git:ssh://git@example.com/repo.git")]
     [InlineData("git:git@github.com:owner/repo.git")]
@@ -92,19 +99,23 @@ public class SchemaTests
     [InlineData("https://gitlab.com/group/repo")]
     [InlineData("git@gitlab.com:group/repo.git")]
     [InlineData("https://gitlab.com/group/subgroup/repo")]
-    public void AcceptsValidSource(string source) =>
+    public void AcceptsValidSource(string source)
+    {
         Assert.True(SkillDependencyHelpers.IsValidSkillSource(source), $"expected '{source}' to be valid");
+    }
 
     [Theory]
-    [InlineData("git:--upload-pack=evil")]      // git: without safe protocol
-    [InlineData("git:relative/path")]           // git: with bare relative path
-    [InlineData("just-a-name")]                 // no slash
-    [InlineData("-bad/repo")]                   // owner starts with dash
-    [InlineData("owner/-bad")]                  // repo starts with dash
-    [InlineData("a/b/c")]                       // three-part path
-    [InlineData("https://github.com/-bad/repo")]// GitHub URL with dash-prefixed owner
-    public void RejectsInvalidSource(string source) =>
+    [InlineData("git:--upload-pack=evil")] // git: without safe protocol
+    [InlineData("git:relative/path")] // git: with bare relative path
+    [InlineData("just-a-name")] // no slash
+    [InlineData("-bad/repo")] // owner starts with dash
+    [InlineData("owner/-bad")] // repo starts with dash
+    [InlineData("a/b/c")] // three-part path
+    [InlineData("https://github.com/-bad/repo")] // GitHub URL with dash-prefixed owner
+    public void RejectsInvalidSource(string source)
+    {
         Assert.False(SkillDependencyHelpers.IsValidSkillSource(source), $"expected '{source}' to be invalid");
+    }
 
     // ── Skill name validation ─────────────────────────────────────────────────
 
@@ -113,8 +124,10 @@ public class SchemaTests
     [InlineData("my_skill")]
     [InlineData("skill.v2")]
     [InlineData("find-bugs")]
-    public void AcceptsValidSkillNames(string name) =>
+    public void AcceptsValidSkillNames(string name)
+    {
         Assert.True(SkillDependencyHelpers.IsValidSkillName(name));
+    }
 
     [Theory]
     [InlineData("../../etc/passwd")]
@@ -122,15 +135,17 @@ public class SchemaTests
     [InlineData("foo/bar")]
     [InlineData(".hidden")]
     [InlineData("-bad")]
-    public void RejectsInvalidSkillNames(string name) =>
+    public void RejectsInvalidSkillNames(string name)
+    {
         Assert.False(SkillDependencyHelpers.IsValidSkillName(name));
+    }
 
     [Fact]
     public void ValidatorRejectsSkillWithInvalidName()
     {
         var cfg = Minimal() with
         {
-            Skills = [new RegularSkillDependency("-bad", "owner/repo", null, null)],
+            Skills = [new RegularSkillDependency("-bad", "owner/repo", null, null)]
         };
         Assert.Throws<ConfigException>(() => AgentsConfigValidator.Validate(cfg));
     }
@@ -138,7 +153,10 @@ public class SchemaTests
     // ── agents field ──────────────────────────────────────────────────────────
 
     [Fact]
-    public void AgentsDefaultsToEmpty() => Assert.Empty(Minimal().Agents);
+    public void AgentsDefaultsToEmpty()
+    {
+        Assert.Empty(Minimal().Agents);
+    }
 
     [Fact]
     public void AcceptsValidAgentIds()
@@ -150,7 +168,10 @@ public class SchemaTests
     // ── mcp field ─────────────────────────────────────────────────────────────
 
     [Fact]
-    public void McpDefaultsToEmpty() => Assert.Empty(Minimal().Mcp);
+    public void McpDefaultsToEmpty()
+    {
+        Assert.Empty(Minimal().Mcp);
+    }
 
     [Fact]
     public void AcceptsStdioMcpServer()
@@ -211,7 +232,8 @@ public class SchemaTests
     [Fact]
     public void ParsesTrustWithAllFields()
     {
-        var trust = new TrustConfig(false, ["getsentry", "anthropics"], ["external-org/one-approved"], ["git.corp.example.com"]);
+        var trust = new TrustConfig(false, ["getsentry", "anthropics"], ["external-org/one-approved"],
+            ["git.corp.example.com"]);
         var cfg = Minimal() with { Trust = trust };
         AgentsConfigValidator.Validate(cfg);
         Assert.Equal(trust, cfg.Trust);
@@ -236,7 +258,10 @@ public class SchemaTests
     }
 
     [Fact]
-    public void TrustIsNullWhenAbsent() => Assert.Null(Minimal().Trust);
+    public void TrustIsNullWhenAbsent()
+    {
+        Assert.Null(Minimal().Trust);
+    }
 
     // ── backward compatibility ─────────────────────────────────────────────────
 

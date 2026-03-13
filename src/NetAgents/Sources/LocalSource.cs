@@ -5,8 +5,8 @@ public sealed class LocalSourceException(string message) : Exception(message);
 public static class LocalSource
 {
     /// <summary>
-    /// Resolve a path: source to an absolute directory.
-    /// The path is relative to the project root.
+    ///     Resolve a path: source to an absolute directory.
+    ///     The path is relative to the project root.
     /// </summary>
     public static async Task<string> ResolveLocalSourceAsync(
         string projectRoot,
@@ -21,10 +21,8 @@ public static class LocalSource
         // Prevent path traversal outside the project root
         if (!absPath.StartsWith(absRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
             !string.Equals(absPath, absRoot, StringComparison.Ordinal))
-        {
             throw new LocalSourceException(
                 $"Local source \"{relativePath}\" resolves outside project root");
-        }
 
         var exists = await Task.Run(() => Directory.Exists(absPath), ct).ConfigureAwait(false);
         if (!exists)

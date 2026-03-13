@@ -1,11 +1,10 @@
+namespace NetAgents.Agents;
+
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using NetAgents.Config;
+using Config;
 using Tomlyn.Parsing;
-using Tomlyn.Syntax;
-
-namespace NetAgents.Agents;
 
 public sealed record McpResolvedTarget(string FilePath, bool Shared);
 
@@ -13,13 +12,19 @@ public delegate McpResolvedTarget McpTargetResolver(string agentId, McpConfigSpe
 
 public static class McpWriter
 {
-    public static IReadOnlyList<McpDeclaration> ToMcpDeclarations(IReadOnlyList<McpConfig> configs) =>
-        configs.Select(m => new McpDeclaration(
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
+    public static IReadOnlyList<McpDeclaration> ToMcpDeclarations(IReadOnlyList<McpConfig> configs)
+    {
+        return configs.Select(m => new McpDeclaration(
             m.Name, m.Command, m.Args, m.Url, m.Headers,
             m.Env is { Count: > 0 } ? m.Env : null)).ToList();
+    }
 
-    public static McpTargetResolver ProjectResolver(string projectRoot) =>
-        (_, spec) => new McpResolvedTarget(Path.Combine(projectRoot, spec.FilePath), spec.Shared);
+    public static McpTargetResolver ProjectResolver(string projectRoot)
+    {
+        return (_, spec) => new McpResolvedTarget(Path.Combine(projectRoot, spec.FilePath), spec.Shared);
+    }
 
     public static async Task WriteMcpConfigsAsync(
         IReadOnlyList<string> agentIds,
@@ -86,10 +91,8 @@ public static class McpWriter
                 var existing = await ReadExistingJsonAsync(target.FilePath, agent.Mcp, ct).ConfigureAwait(false);
                 var serversNode = existing[agent.Mcp.RootKey]?.AsObject();
                 foreach (var name in expectedNames)
-                {
                     if (serversNode is null || !serversNode.ContainsKey(name))
                         issues.Add((id, $"""MCP server "{name}" missing from {target.FilePath}"""));
-                }
             }
             catch
             {
@@ -102,13 +105,15 @@ public static class McpWriter
 
     // ── Internal helpers ─────────────────────────────────────────────────────
 
-    private static async Task FreshWriteAsync(string filePath, McpConfigSpec spec, JsonObject servers, CancellationToken ct)
+    private static async Task FreshWriteAsync(string filePath, McpConfigSpec spec, JsonObject servers,
+        CancellationToken ct)
     {
         var doc = new JsonObject { [spec.RootKey] = servers };
         await WriteDocAsync(filePath, doc, spec.Format, ct).ConfigureAwait(false);
     }
 
-    private static async Task MergeWriteAsync(string filePath, McpConfigSpec spec, JsonObject servers, CancellationToken ct)
+    private static async Task MergeWriteAsync(string filePath, McpConfigSpec spec, JsonObject servers,
+        CancellationToken ct)
     {
         var existing = File.Exists(filePath)
             ? await ReadExistingJsonAsync(filePath, spec, ct).ConfigureAwait(false)
@@ -123,13 +128,14 @@ public static class McpWriter
         await WriteDocAsync(filePath, existing, spec.Format, ct).ConfigureAwait(false);
     }
 
-    private static async Task<JsonObject> ReadExistingJsonAsync(string filePath, McpConfigSpec spec, CancellationToken ct)
+    private static async Task<JsonObject> ReadExistingJsonAsync(string filePath, McpConfigSpec spec,
+        CancellationToken ct)
     {
         var raw = await File.ReadAllTextAsync(filePath, ct).ConfigureAwait(false);
         return spec.Format switch
         {
             ConfigFormat.Toml => TomlToJsonObject(raw),
-            _ => JsonNode.Parse(raw)?.AsObject() ?? new JsonObject(),
+            _ => JsonNode.Parse(raw)?.AsObject() ?? new JsonObject()
         };
     }
 
@@ -157,8 +163,10 @@ public static class McpWriter
                 var kv = table.Items.GetChild(i)!;
                 tableObj[kv.Key?.ToString().Trim() ?? ""] = kv.Value?.ToString().Trim();
             }
+
             obj[tableName] = tableObj;
         }
+
         return obj;
     }
 
@@ -167,7 +175,7 @@ public static class McpWriter
         var content = format switch
         {
             ConfigFormat.Toml => SerializeToml(doc),
-            _ => doc.ToJsonString(JsonOptions) + "\n",
+            _ => doc.ToJsonString(JsonOptions) + "\n"
         };
         await File.WriteAllTextAsync(filePath, content, Encoding.UTF8, ct).ConfigureAwait(false);
     }
@@ -176,7 +184,6 @@ public static class McpWriter
     {
         var sb = new StringBuilder();
         foreach (var (key, value) in doc)
-        {
             if (value is JsonObject section)
             {
                 SerializeTomlTable(sb, key, section);
@@ -187,7 +194,7 @@ public static class McpWriter
                 AppendTomlValue(sb, value);
                 sb.AppendLine();
             }
-        }
+
         return sb.ToString();
     }
 
@@ -197,14 +204,13 @@ public static class McpWriter
         {
             sb.AppendLine($"[{tableName}.{key}]");
             if (value is JsonObject inner)
-            {
                 foreach (var (ik, iv) in inner)
                 {
                     sb.Append(ik).Append(" = ");
                     AppendTomlValue(sb, iv);
                     sb.AppendLine();
                 }
-            }
+
             sb.AppendLine();
         }
     }
@@ -220,6 +226,7 @@ public static class McpWriter
                     if (i > 0) sb.Append(", ");
                     AppendTomlValue(sb, arr[i]);
                 }
+
                 sb.Append(']');
                 break;
             case JsonValue val when val.TryGetValue<string>(out var s):
@@ -239,6 +246,4 @@ public static class McpWriter
                 break;
         }
     }
-
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 }

@@ -1,19 +1,20 @@
+namespace NetAgents.Tests.Agents;
+
 using System.Text.Json.Nodes;
 using NetAgents.Agents;
 using Xunit;
 
-namespace NetAgents.Tests.Agents;
-
 public class RegistryTests
 {
     private static readonly McpDeclaration StdioServer = new(
-        "github", Command: "npx", Args: ["-y", "@modelcontextprotocol/server-github"], Env: ["GITHUB_TOKEN"]);
+        "github", "npx", ["-y", "@modelcontextprotocol/server-github"], Env: ["GITHUB_TOKEN"]);
 
     private static readonly McpDeclaration HttpServer = new(
-        "remote-api", Url: "https://mcp.example.com/sse", Headers: new Dictionary<string, string> { ["Authorization"] = "Bearer tok" });
+        "remote-api", Url: "https://mcp.example.com/sse",
+        Headers: new Dictionary<string, string> { ["Authorization"] = "Bearer tok" });
 
     private static readonly McpDeclaration StdioNoEnv = new(
-        "simple", Command: "mcp-server", Args: []);
+        "simple", "mcp-server", []);
 
     // ── allAgentIds ──────────────────────────────────────────────────────────
 
@@ -32,8 +33,10 @@ public class RegistryTests
     // ── getAgent ─────────────────────────────────────────────────────────────
 
     [Fact]
-    public void GetAgent_ReturnsNullForUnknown() =>
+    public void GetAgent_ReturnsNullForUnknown()
+    {
         Assert.Null(AgentRegistry.GetAgent("unknown"));
+    }
 
     // ── claude serializer ────────────────────────────────────────────────────
 

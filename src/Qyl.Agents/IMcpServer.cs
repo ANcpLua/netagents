@@ -1,6 +1,6 @@
-using System.Text.Json;
-
 namespace Qyl.Agents;
+
+using System.Text.Json;
 
 /// <summary>
 ///     Implemented by generated partial classes marked with <c>[McpServer]</c>.

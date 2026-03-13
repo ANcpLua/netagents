@@ -1,6 +1,6 @@
-using Qyl.Agents.Generator.Models;
-
 namespace Qyl.Agents.Generator.Generation;
+
+using Models;
 
 internal static class DispatchEmitter
 {
@@ -287,8 +287,10 @@ internal static class DispatchEmitter
         return false;
     }
 
-    private static bool IsDirectlySerializableReturn(string rt) =>
-        rt.IsStringType() || rt.TypeNamesEqual("bool") || IsNumericType(rt);
+    private static bool IsDirectlySerializableReturn(string rt)
+    {
+        return rt.IsStringType() || rt.TypeNamesEqual("bool") || IsNumericType(rt);
+    }
 
     private static bool IsNumericType(string typeFullyQualified)
     {
@@ -318,5 +320,8 @@ internal static class DispatchEmitter
         return $"ExecuteTool_{tool.MethodName}Async";
     }
 
-    private static string Lit(string value) => EmitHelpers.Lit(value);
+    private static string Lit(string value)
+    {
+        return EmitHelpers.Lit(value);
+    }
 }

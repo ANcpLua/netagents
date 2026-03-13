@@ -1,14 +1,23 @@
+namespace NetAgents.Tests.Cli;
+
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
 using Xunit;
 
-namespace NetAgents.Tests.Cli;
-
 file sealed class TempDir : IDisposable
 {
-    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
-    public TempDir() => Directory.CreateDirectory(Path);
-    public void Dispose() { if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true); }
+    public TempDir()
+    {
+        Directory.CreateDirectory(Path);
+    }
+
+    public string Path { get; } =
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+
+    public void Dispose()
+    {
+        if (Directory.Exists(Path)) Directory.Delete(Path, true);
+    }
 }
 
 public sealed class InitCommandTests
@@ -83,7 +92,8 @@ public sealed class InitCommandTests
         await File.WriteAllTextAsync(Path.Combine(tmp.Path, "agents.toml"), "version = 1\n", CT);
         var scope = ScopeResolver.ResolveScope(ScopeKind.Project, tmp.Path);
 
-        var ex = await Assert.ThrowsAsync<InitException>(() => InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT));
+        var ex = await Assert.ThrowsAsync<InitException>(() =>
+            InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT));
         Assert.Contains("already exists", ex.Message);
     }
 
@@ -94,7 +104,7 @@ public sealed class InitCommandTests
         await File.WriteAllTextAsync(Path.Combine(tmp.Path, "agents.toml"), "garbage content", CT);
         var scope = ScopeResolver.ResolveScope(ScopeKind.Project, tmp.Path);
 
-        await InitCommand.RunInitAsync(new InitOptions(scope, Force: true, Skills: []), CT);
+        await InitCommand.RunInitAsync(new InitOptions(scope, true, Skills: []), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
         Assert.Equal(1, config.Version);
@@ -107,7 +117,7 @@ public sealed class InitCommandTests
         var scope = ScopeResolver.ResolveScope(ScopeKind.Project, tmp.Path);
 
         await InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT);
-        await InitCommand.RunInitAsync(new InitOptions(scope, Force: true, Skills: []), CT);
+        await InitCommand.RunInitAsync(new InitOptions(scope, true, Skills: []), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
         Assert.Equal(1, config.Version);
@@ -162,8 +172,8 @@ public sealed class InitCommandTests
         using var tmp = new TempDir();
         var scope = ScopeResolver.ResolveScope(ScopeKind.Project, tmp.Path);
 
-        var ex = await Assert.ThrowsAsync<InitException>(
-            () => InitCommand.RunInitAsync(new InitOptions(scope, Agents: ["emacs"], Skills: []), CT));
+        var ex = await Assert.ThrowsAsync<InitException>(() =>
+            InitCommand.RunInitAsync(new InitOptions(scope, Agents: ["emacs"], Skills: []), CT));
         Assert.Contains("Unknown agent", ex.Message);
     }
 

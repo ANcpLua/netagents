@@ -1,7 +1,7 @@
+namespace Qyl.Agents.Protocol;
+
 using System.Text.Json;
 using System.Text.Json.Serialization;
-
-namespace Qyl.Agents.Protocol;
 
 internal sealed class JsonRpcRequest
 {

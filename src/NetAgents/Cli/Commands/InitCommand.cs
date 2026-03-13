@@ -1,10 +1,10 @@
-using NetAgents.Agents;
-using NetAgents.Config;
-using NetAgents.Gitignore;
-using NetAgents.Symlinks;
-using NetAgents.Trust;
-
 namespace NetAgents.Cli.Commands;
+
+using Agents;
+using Config;
+using Gitignore;
+using Symlinks;
+using Trust;
 
 public sealed class InitException(string message) : Exception(message);
 
@@ -17,20 +17,19 @@ public sealed record InitOptions(
 
 public static class InitCommand
 {
-    private static readonly SkillEntry BootstrapSkill = new("netagents", "getsentry/dotagents");
-
     private const string PostMergeMarker = "# netagents:post-merge";
+    private static readonly SkillEntry BootstrapSkill = new("netagents", "getsentry/dotagents");
 
     private static readonly string PostMergeSnippet = $"""
 
-        {PostMergeMarker}
-        if command -v netagents >/dev/null 2>&1; then
-          netagents install
-        elif command -v dotnet >/dev/null 2>&1; then
-          dotnet tool run netagents install
-        fi
-        # netagents:end
-        """;
+                                                       {PostMergeMarker}
+                                                       if command -v netagents >/dev/null 2>&1; then
+                                                         netagents install
+                                                       elif command -v dotnet >/dev/null 2>&1; then
+                                                         dotnet tool run netagents install
+                                                       fi
+                                                       # netagents:end
+                                                       """;
 
     public static async Task RunInitAsync(InitOptions opts, CancellationToken ct = default)
     {
@@ -57,7 +56,8 @@ public static class InitCommand
         {
             var alreadyCovered =
                 effectiveTrust.GithubOrgs.Any(o => string.Equals(o, "getsentry", StringComparison.OrdinalIgnoreCase)) ||
-                effectiveTrust.GithubRepos.Any(r => string.Equals(r, "getsentry/dotagents", StringComparison.OrdinalIgnoreCase));
+                effectiveTrust.GithubRepos.Any(r =>
+                    string.Equals(r, "getsentry/dotagents", StringComparison.OrdinalIgnoreCase));
             if (!alreadyCovered)
                 effectiveTrust = effectiveTrust with
                 {
@@ -67,7 +67,8 @@ public static class InitCommand
 
         Directory.CreateDirectory(agentsDir);
         await File.WriteAllTextAsync(configPath,
-            ConfigWriter.GenerateDefaultConfig(new DefaultConfigOptions(agents, effectiveTrust, effectiveSkills)), ct)
+                ConfigWriter.GenerateDefaultConfig(new DefaultConfigOptions(agents, effectiveTrust, effectiveSkills)),
+                ct)
             .ConfigureAwait(false);
         Directory.CreateDirectory(skillsDir);
 
@@ -92,7 +93,8 @@ public static class InitCommand
                 foreach (var dir in agent.UserSkillsParentDirs)
                 {
                     if (!seen.Add(dir)) continue;
-                    var result = await SymlinkManager.EnsureSkillsSymlinkAsync(agentsDir, dir, ct).ConfigureAwait(false);
+                    var result = await SymlinkManager.EnsureSkillsSymlinkAsync(agentsDir, dir, ct)
+                        .ConfigureAwait(false);
                     symlinkResults.Add((dir, result.Created, result.Migrated));
                 }
             }
@@ -103,7 +105,8 @@ public static class InitCommand
             foreach (var target in targets)
             {
                 var targetDir = Path.Combine(scope.Root, target);
-                var result = await SymlinkManager.EnsureSkillsSymlinkAsync(agentsDir, targetDir, ct).ConfigureAwait(false);
+                var result = await SymlinkManager.EnsureSkillsSymlinkAsync(agentsDir, targetDir, ct)
+                    .ConfigureAwait(false);
                 symlinkResults.Add((target, result.Created, result.Migrated));
             }
 
@@ -114,24 +117,26 @@ public static class InitCommand
                 if (agent?.SkillsParentDir is null) continue;
                 if (!seenParentDirs.Add(agent.SkillsParentDir)) continue;
                 var targetDir = Path.Combine(scope.Root, agent.SkillsParentDir);
-                var result = await SymlinkManager.EnsureSkillsSymlinkAsync(agentsDir, targetDir, ct).ConfigureAwait(false);
+                var result = await SymlinkManager.EnsureSkillsSymlinkAsync(agentsDir, targetDir, ct)
+                    .ConfigureAwait(false);
                 symlinkResults.Add((agent.SkillsParentDir, result.Created, result.Migrated));
             }
         }
 
         // Auto-install declared skills (best-effort)
         if (config.Skills.Count > 0)
-        {
             try
             {
                 await InstallCommand.RunInstallAsync(new InstallOptions(scope), ct).ConfigureAwait(false);
             }
-            catch (TrustException) { throw; }
+            catch (TrustException)
+            {
+                throw;
+            }
             catch
             {
                 Console.WriteLine("Could not install skills. Run `netagents install` to install them later.");
             }
-        }
 
         PrintSummary(scope, symlinkResults);
     }
@@ -191,12 +196,10 @@ public static class InitCommand
         }
 
         if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
-        {
             File.SetUnixFileMode(hookPath,
                 UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute |
                 UnixFileMode.GroupRead | UnixFileMode.GroupExecute |
                 UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
-        }
         return "created";
     }
 
@@ -207,9 +210,13 @@ public static class InitCommand
 
         ScopeRoot scope;
         if (isUser)
+        {
             scope = ScopeResolver.ResolveScope(ScopeKind.User);
+        }
         else if (ScopeResolver.IsInsideGitRepo(Path.GetFullPath(".")))
+        {
             scope = ScopeResolver.ResolveScope(ScopeKind.Project, Path.GetFullPath("."));
+        }
         else
         {
             Console.Error.WriteLine("No project found, using user scope (~/.agents/)");

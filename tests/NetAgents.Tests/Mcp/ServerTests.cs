@@ -1,17 +1,28 @@
-using System.Text.Json;
+namespace NetAgents.Tests.Mcp;
+
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
 using NetAgents.Mcp;
-using NetAgents.Utils;
+using Utils;
 using Xunit;
-
-namespace NetAgents.Tests.Mcp;
 
 file sealed class TempDir : IDisposable
 {
-    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
-    public TempDir() => Directory.CreateDirectory(Path);
-    public void Dispose() { if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true); }
+    public TempDir()
+    {
+        Directory.CreateDirectory(Path);
+    }
+
+    public string Path { get; } =
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+
+    public void Dispose()
+    {
+        if (!Directory.Exists(Path)) return;
+        foreach (var info in new DirectoryInfo(Path).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+            info.Attributes = FileAttributes.Normal;
+        Directory.Delete(Path, true);
+    }
 }
 
 [Collection("SerialGit")]
@@ -54,15 +65,17 @@ public sealed class ServerTests
             Assert.Contains("pdf", result);
             Assert.Contains("ok", result);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
     public async Task ListAsync_MissingConfigThrows()
     {
         var server = new NetAgentsMcpServer();
-        await Assert.ThrowsAsync<ConfigException>(
-            () => server.ListAsync("/nonexistent-path-that-does-not-exist", CT));
+        await Assert.ThrowsAsync<ConfigException>(() => server.ListAsync("/nonexistent-path-that-does-not-exist", CT));
     }
 
     [Fact]
@@ -84,15 +97,18 @@ public sealed class ServerTests
             Assert.Contains("pdf", result);
             Assert.True(Directory.Exists(Path.Combine(project, ".agents", "skills", "pdf")));
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
     public async Task InstallAsync_MissingConfigThrows()
     {
         var server = new NetAgentsMcpServer();
-        await Assert.ThrowsAsync<ConfigException>(
-            () => server.InstallAsync("/nonexistent-path-that-does-not-exist", CT));
+        await Assert.ThrowsAsync<ConfigException>(() =>
+            server.InstallAsync("/nonexistent-path-that-does-not-exist", CT));
     }
 
     [Fact]
@@ -111,7 +127,10 @@ public sealed class ServerTests
 
             Assert.Contains("Added skill: pdf", result);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -123,8 +142,7 @@ public sealed class ServerTests
         File.WriteAllText(Path.Combine(project, "agents.toml"), "version = 1\n");
 
         var server = new NetAgentsMcpServer();
-        await Assert.ThrowsAsync<AddException>(
-            () => server.AddAsync(project, "not-a-valid-source", CT));
+        await Assert.ThrowsAsync<AddException>(() => server.AddAsync(project, "not-a-valid-source", CT));
     }
 
     [Fact]
@@ -147,7 +165,10 @@ public sealed class ServerTests
 
             Assert.Contains("Removed skill: pdf", result);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -159,8 +180,7 @@ public sealed class ServerTests
         File.WriteAllText(Path.Combine(project, "agents.toml"), "version = 1\n");
 
         var server = new NetAgentsMcpServer();
-        await Assert.ThrowsAsync<RemoveException>(
-            () => server.RemoveAsync(project, "nonexistent", CT));
+        await Assert.ThrowsAsync<RemoveException>(() => server.RemoveAsync(project, "nonexistent", CT));
     }
 
     [Fact]
@@ -184,7 +204,10 @@ public sealed class ServerTests
             Assert.Contains("wildcard", result);
             Assert.Contains("exclude", result);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -221,9 +244,9 @@ public sealed class ServerTests
     {
         var repoDir = Path.Combine(parentDir, "repo");
         Directory.CreateDirectory(repoDir);
-        await ProcessRunner.RunAsync("git", ["init"], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["config", "user.email", "t@t.com"], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["config", "user.name", "T"], cwd: repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["init"], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["config", "user.email", "t@t.com"], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["config", "user.name", "T"], repoDir, ct: ct);
         foreach (var sp in skillPaths)
         {
             var dir = Path.Combine(repoDir, sp);
@@ -231,8 +254,9 @@ public sealed class ServerTests
             var name = Path.GetFileName(sp);
             File.WriteAllText(Path.Combine(dir, "SKILL.md"), $"---\nname: {name}\ndescription: T\n---\n");
         }
-        await ProcessRunner.RunAsync("git", ["add", "."], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], cwd: repoDir, ct: ct);
+
+        await ProcessRunner.RunAsync("git", ["add", "."], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], repoDir, ct: ct);
         return repoDir;
     }
 }

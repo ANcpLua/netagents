@@ -1,14 +1,23 @@
-using NetAgents.Cli.Commands;
-using NetAgents.Utils;
-using Xunit;
-
 namespace NetAgents.Tests.Cli;
+
+using NetAgents.Cli.Commands;
+using Utils;
+using Xunit;
 
 file sealed class TempDir : IDisposable
 {
-    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
-    public TempDir() => Directory.CreateDirectory(Path);
-    public void Dispose() { if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true); }
+    public TempDir()
+    {
+        Directory.CreateDirectory(Path);
+    }
+
+    public string Path { get; } =
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+
+    public void Dispose()
+    {
+        if (Directory.Exists(Path)) Directory.Delete(Path, true);
+    }
 }
 
 [Collection("SerialGit")]
@@ -27,9 +36,9 @@ public sealed class AddCommandTests
     {
         var repoDir = Path.Combine(parentDir, "repo");
         Directory.CreateDirectory(repoDir);
-        await ProcessRunner.RunAsync("git", ["init"], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["config", "user.email", "test@test.com"], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["config", "user.name", "Test"], cwd: repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["init"], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["config", "user.email", "test@test.com"], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["config", "user.name", "Test"], repoDir, ct: ct);
         foreach (var sp in skillPaths)
         {
             var dir = Path.Combine(repoDir, sp);
@@ -37,8 +46,9 @@ public sealed class AddCommandTests
             var name = Path.GetFileName(sp);
             File.WriteAllText(Path.Combine(dir, "SKILL.md"), $"---\nname: {name}\ndescription: Test\n---\n");
         }
-        await ProcessRunner.RunAsync("git", ["add", "."], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], cwd: repoDir, ct: ct);
+
+        await ProcessRunner.RunAsync("git", ["add", "."], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], repoDir, ct: ct);
         return repoDir;
     }
 
@@ -58,7 +68,10 @@ public sealed class AddCommandTests
             var toml = await File.ReadAllTextAsync(Path.Combine(project, "agents.toml"), CT);
             Assert.Contains("name = \"pdf\"", toml);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -78,7 +91,10 @@ public sealed class AddCommandTests
             Assert.Contains("pdf", result.MultipleNames);
             Assert.Contains("review", result.MultipleNames);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -91,10 +107,13 @@ public sealed class AddCommandTests
         try
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
-            await Assert.ThrowsAsync<AddException>(
-                () => AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}", Names: ["nonexistent"]), CT));
+            await Assert.ThrowsAsync<AddException>(() =>
+                AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}", Names: ["nonexistent"]), CT));
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -110,11 +129,14 @@ public sealed class AddCommandTests
         try
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
-            var ex = await Assert.ThrowsAsync<AddException>(
-                () => AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}", Names: ["pdf"]), CT));
+            var ex = await Assert.ThrowsAsync<AddException>(() =>
+                AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}", Names: ["pdf"]), CT));
             Assert.Contains("already exists", ex.Message);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -127,10 +149,13 @@ public sealed class AddCommandTests
         try
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
-            await Assert.ThrowsAsync<AddException>(
-                () => AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}", Names: ["pdf"], All: true), CT));
+            await Assert.ThrowsAsync<AddException>(() =>
+                AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}", Names: ["pdf"], All: true), CT));
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -140,13 +165,14 @@ public sealed class AddCommandTests
         var project = SetupProject(Path.Combine(tmp.Path, "project"));
         var singleRepo = Path.Combine(tmp.Path, "single-repo");
         Directory.CreateDirectory(singleRepo);
-        await ProcessRunner.RunAsync("git", ["init"], cwd: singleRepo, ct: CT);
-        await ProcessRunner.RunAsync("git", ["config", "user.email", "t@t.com"], cwd: singleRepo, ct: CT);
-        await ProcessRunner.RunAsync("git", ["config", "user.name", "T"], cwd: singleRepo, ct: CT);
+        await ProcessRunner.RunAsync("git", ["init"], singleRepo, ct: CT);
+        await ProcessRunner.RunAsync("git", ["config", "user.email", "t@t.com"], singleRepo, ct: CT);
+        await ProcessRunner.RunAsync("git", ["config", "user.name", "T"], singleRepo, ct: CT);
         Directory.CreateDirectory(Path.Combine(singleRepo, "only-skill"));
-        File.WriteAllText(Path.Combine(singleRepo, "only-skill", "SKILL.md"), "---\nname: only-skill\ndescription: T\n---\n");
-        await ProcessRunner.RunAsync("git", ["add", "."], cwd: singleRepo, ct: CT);
-        await ProcessRunner.RunAsync("git", ["commit", "-m", "init"], cwd: singleRepo, ct: CT);
+        File.WriteAllText(Path.Combine(singleRepo, "only-skill", "SKILL.md"),
+            "---\nname: only-skill\ndescription: T\n---\n");
+        await ProcessRunner.RunAsync("git", ["add", "."], singleRepo, ct: CT);
+        await ProcessRunner.RunAsync("git", ["commit", "-m", "init"], singleRepo, ct: CT);
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
@@ -155,7 +181,10 @@ public sealed class AddCommandTests
 
             Assert.Equal("only-skill", result.SingleName);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -168,11 +197,14 @@ public sealed class AddCommandTests
         try
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
-            var ex = await Assert.ThrowsAsync<AddException>(
-                () => AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}"), CT));
+            var ex = await Assert.ThrowsAsync<AddException>(() =>
+                AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}"), CT));
             Assert.Contains("Multiple skills found", ex.Message);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]

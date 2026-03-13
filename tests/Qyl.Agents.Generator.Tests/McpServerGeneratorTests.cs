@@ -1,8 +1,8 @@
+namespace Qyl.Agents.Generator.Tests;
+
 using ANcpLua.Roslyn.Utilities.Testing;
 using Microsoft.CodeAnalysis;
 using Xunit;
-
-namespace Qyl.Agents.Generator.Tests;
 
 public sealed class McpServerGeneratorTests : IDisposable
 {

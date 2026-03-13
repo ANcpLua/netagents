@@ -1,6 +1,6 @@
-using NetAgents.Utils;
-
 namespace NetAgents.Symlinks;
+
+using Utils;
 
 public sealed class SymlinkException(string message) : Exception(message);
 
@@ -11,8 +11,8 @@ public sealed record SymlinkIssue(string Target, string Issue);
 public static class SymlinkManager
 {
     /// <summary>
-    /// Ensure &lt;targetDir&gt;/skills/ is a symlink pointing to &lt;agentsDir&gt;/skills/.
-    /// Creates the parent directory if it doesn't exist.
+    ///     Ensure &lt;targetDir&gt;/skills/ is a symlink pointing to &lt;agentsDir&gt;/skills/.
+    ///     Creates the parent directory if it doesn't exist.
     /// </summary>
     public static async Task<SymlinkResult> EnsureSkillsSymlinkAsync(
         string agentsDir,
@@ -38,8 +38,12 @@ public static class SymlinkManager
                         ? new FileInfo(skillsLink)
                         : null;
         }
-        catch (FileNotFoundException) { }
-        catch (DirectoryNotFoundException) { }
+        catch (FileNotFoundException)
+        {
+        }
+        catch (DirectoryNotFoundException)
+        {
+        }
 
         if (info is null)
         {
@@ -65,7 +69,7 @@ public static class SymlinkManager
         {
             var migrated = MigrateDirectory(skillsLink, skillsSource);
             await RemoveFromGitIndexAsync(targetDir, "skills", ct).ConfigureAwait(false);
-            Directory.Delete(skillsLink, recursive: true);
+            Directory.Delete(skillsLink, true);
             File.CreateSymbolicLink(skillsLink, relativeTarget);
             return new SymlinkResult(true, migrated);
         }
@@ -93,15 +97,15 @@ public static class SymlinkManager
     }
 
     /// <summary>
-    /// Best-effort removal of tracked files from git's index.
-    /// Prevents "beyond a symbolic link" errors when a tracked directory
-    /// is replaced by a symlink.
+    ///     Best-effort removal of tracked files from git's index.
+    ///     Prevents "beyond a symbolic link" errors when a tracked directory
+    ///     is replaced by a symlink.
     /// </summary>
     private static async Task RemoveFromGitIndexAsync(string cwd, string path, CancellationToken ct)
     {
         try
         {
-            await ProcessRunner.RunAsync("git", ["rm", "-r", "--cached", "--ignore-unmatch", path], cwd: cwd, ct: ct)
+            await ProcessRunner.RunAsync("git", ["rm", "-r", "--cached", "--ignore-unmatch", path], cwd, ct: ct)
                 .ConfigureAwait(false);
         }
         catch
@@ -111,8 +115,8 @@ public static class SymlinkManager
     }
 
     /// <summary>
-    /// Verify all configured symlinks are correct.
-    /// Returns a list of issues found.
+    ///     Verify all configured symlinks are correct.
+    ///     Returns a list of issues found.
     /// </summary>
     public static Task<IReadOnlyList<SymlinkIssue>> VerifySymlinksAsync(
         string agentsDir,
@@ -146,9 +150,7 @@ public static class SymlinkManager
             }
 
             if (linkTarget != relativeTarget)
-            {
                 issues.Add(new SymlinkIssue(target, $"{skillsLink} points to {linkTarget}, expected {relativeTarget}"));
-            }
         }
 
         return Task.FromResult<IReadOnlyList<SymlinkIssue>>(issues);

@@ -1,27 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
-        <LangVersion>latest</LangVersion>
-        <Nullable>enable</Nullable>
-        <ImplicitUsings>disable</ImplicitUsings>
-        <RootNamespace>Qyl.Agents</RootNamespace>
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Qyl.Agents</RootNamespace>
 
-        <Description>Marker attributes for Qyl.Agents source generator: [McpServer] and [Tool].</Description>
-        <PackageTags>qyl;agents;mcp;source-generator;attributes</PackageTags>
-    </PropertyGroup>
+    <Description>Marker attributes for Qyl.Agents source generator: [McpServer] and [Tool].</Description>
+    <PackageTags>qyl;agents;mcp;source-generator;attributes</PackageTags>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <Using Include="System"/>
-    </ItemGroup>
-    <!-- Link polyfills for netstandard2.0 required init -->
-    <ItemGroup>
-        <Compile Include="..\..\shared\Polyfills\IsExternalInit.cs"
-                 Link="Polyfills\IsExternalInit.cs"/>
-        <Compile Include="..\..\shared\Polyfills\RequiredMemberAttribute.cs"
-                 Link="Polyfills\RequiredMemberAttribute.cs"/>
-        <Compile Include="..\..\shared\Polyfills\CompilerFeatureRequiredAttribute.cs"
-                 Link="Polyfills\CompilerFeatureRequiredAttribute.cs"/>
-        <Compile Include="..\..\shared\Polyfills\SetsRequiredMembersAttribute.cs"
-                 Link="Polyfills\SetsRequiredMembersAttribute.cs"/>
-    </ItemGroup>
+  <ItemGroup>
+    <Using Include="System"/>
+  </ItemGroup>
+  <!-- Link polyfills for netstandard2.0 required init -->
+  <ItemGroup>
+    <Compile Include="..\..\shared\Polyfills\IsExternalInit.cs"
+             Link="Polyfills\IsExternalInit.cs"/>
+    <Compile Include="..\..\shared\Polyfills\RequiredMemberAttribute.cs"
+             Link="Polyfills\RequiredMemberAttribute.cs"/>
+    <Compile Include="..\..\shared\Polyfills\CompilerFeatureRequiredAttribute.cs"
+             Link="Polyfills\CompilerFeatureRequiredAttribute.cs"/>
+    <Compile Include="..\..\shared\Polyfills\SetsRequiredMembersAttribute.cs"
+             Link="Polyfills\SetsRequiredMembersAttribute.cs"/>
+  </ItemGroup>
 </Project>

@@ -1,21 +1,26 @@
-using System;
-using System.IO;
-using Xunit;
-
 namespace NetAgents.Tests;
+
+using Xunit;
 
 /// Shared temp-dir lifetime for test classes that need a disposable directory.
 file sealed class TempDir : IDisposable
 {
-    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+    public TempDir()
+    {
+        Directory.CreateDirectory(Path);
+    }
 
-    public TempDir() => Directory.CreateDirectory(Path);
-
-    public string Sub(params string[] parts) => System.IO.Path.Combine([Path, .. parts]);
+    public string Path { get; } =
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
 
     public void Dispose()
     {
-        if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true);
+        if (Directory.Exists(Path)) Directory.Delete(Path, true);
+    }
+
+    public string Sub(params string[] parts)
+    {
+        return System.IO.Path.Combine([Path, .. parts]);
     }
 }
 
@@ -25,7 +30,10 @@ public sealed class ResolveScopeTests : IDisposable
 {
     private readonly string? _savedHome = Environment.GetEnvironmentVariable("NETAGENTS_HOME");
 
-    public void Dispose() => Environment.SetEnvironmentVariable("NETAGENTS_HOME", _savedHome);
+    public void Dispose()
+    {
+        Environment.SetEnvironmentVariable("NETAGENTS_HOME", _savedHome);
+    }
 
     [Fact]
     public void ProjectScope_UsesProjectRoot()
@@ -182,7 +190,10 @@ public sealed class ResolveDefaultScopeTests : IDisposable
 {
     private readonly string? _savedHome = Environment.GetEnvironmentVariable("NETAGENTS_HOME");
 
-    public void Dispose() => Environment.SetEnvironmentVariable("NETAGENTS_HOME", _savedHome);
+    public void Dispose()
+    {
+        Environment.SetEnvironmentVariable("NETAGENTS_HOME", _savedHome);
+    }
 
     [Fact]
     public void ReturnsProjectScope_WhenAgentsTomlExists()
@@ -211,7 +222,10 @@ public sealed class ResolveDefaultScopeTests : IDisposable
             Assert.Equal(ScopeKind.User, s.Scope);
             Assert.Contains("user scope", stderr.ToString());
         }
-        finally { Console.SetError(prev); }
+        finally
+        {
+            Console.SetError(prev);
+        }
     }
 
     [Fact]

@@ -1,6 +1,6 @@
-using System.Text;
-
 namespace NetAgents.Lockfile;
+
+using System.Text;
 
 public static class LockfileWriter
 {
@@ -40,6 +40,8 @@ public static class LockfileWriter
         }
     }
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string Escape(string value)
+    {
+        return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    }
 }

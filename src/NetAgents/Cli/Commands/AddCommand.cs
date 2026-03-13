@@ -1,9 +1,9 @@
-using NetAgents.Config;
-using NetAgents.Skills;
-using NetAgents.Sources;
-using NetAgents.Trust;
-
 namespace NetAgents.Cli.Commands;
+
+using Config;
+using Skills;
+using Sources;
+using Trust;
 
 public sealed class AddException(string message) : Exception(message);
 
@@ -18,13 +18,28 @@ public sealed record AddOptions(
     bool Interactive = false);
 
 /// <summary>
-/// Result is either a single skill name (string), a list of names, or "*" for wildcard.
+///     Result is either a single skill name (string), a list of names, or "*" for wildcard.
 /// </summary>
-public sealed record AddResult(string? SingleName, IReadOnlyList<string>? MultipleNames, bool IsWildcard, IReadOnlyList<string> SkippedDuplicates)
+public sealed record AddResult(
+    string? SingleName,
+    IReadOnlyList<string>? MultipleNames,
+    bool IsWildcard,
+    IReadOnlyList<string> SkippedDuplicates)
 {
-    public static AddResult Wildcard() => new(null, null, true, []);
-    public static AddResult Single(string name) => new(name, null, false, []);
-    public static AddResult Multiple(IReadOnlyList<string> names, IReadOnlyList<string> skipped) => new(null, names, false, skipped);
+    public static AddResult Wildcard()
+    {
+        return new AddResult(null, null, true, []);
+    }
+
+    public static AddResult Single(string name)
+    {
+        return new AddResult(name, null, false, []);
+    }
+
+    public static AddResult Multiple(IReadOnlyList<string> names, IReadOnlyList<string> skipped)
+    {
+        return new AddResult(null, names, false, skipped);
+    }
 }
 
 public static class AddCommand
@@ -40,11 +55,9 @@ public static class AddCommand
         // Validate source format
         if (!SkillResolver.IsExplicitSourceSpecifier(specifier) &&
             SkillResolver.ParseOwnerRepoShorthand(specifier) is null)
-        {
             throw new AddException(
                 $"Invalid source \"{specifier}\". " +
                 "Use owner/repo shorthand, an explicit URL, git:<url>, or path:<relative>.");
-        }
 
         var hintedSpecifier = SkillResolver.ApplyDefaultRepositorySource(
             specifier, config.DefaultRepositorySource);
@@ -63,10 +76,8 @@ public static class AddCommand
         {
             if (config.Skills.OfType<WildcardSkillDependency>()
                 .Any(s => SkillResolver.SourcesMatch(s.Source, sourceForStorage)))
-            {
                 throw new AddException(
                     $"A wildcard entry for \"{sourceForStorage}\" already exists in agents.toml.");
-            }
 
             await ConfigWriter.AddWildcardToConfigAsync(scope.ConfigPath, sourceForStorage, effectiveRef, [], ct)
                 .ConfigureAwait(false);
@@ -84,14 +95,10 @@ public static class AddCommand
 
         // Validate user-provided skill names
         if (namesOverride is { Count: > 0 })
-        {
             foreach (var name in namesOverride)
-            {
                 if (!SourcePatterns.ValidSkillName().IsMatch(name))
                     throw new AddException(
                         $"Invalid skill name \"{name}\". Names must start with alphanumeric and contain only alphanumeric, dots, underscores, or hyphens.");
-            }
-        }
 
         string skillName;
 
@@ -112,14 +119,10 @@ public static class AddCommand
                 }
 
                 if (namesOverride.Count == 1)
-                {
                     skillName = namesOverride[0];
-                }
                 else
-                {
                     return await AddMultipleAsync(config, scope, namesOverride, sourceForStorage, effectiveRef, ct)
                         .ConfigureAwait(false);
-                }
             }
             else
             {
@@ -153,14 +156,10 @@ public static class AddCommand
                 }
 
                 if (namesOverride.Count == 1)
-                {
                     skillName = namesOverride[0];
-                }
                 else
-                {
                     return await AddMultipleAsync(config, scope, namesOverride, sourceForStorage, effectiveRef, ct)
                         .ConfigureAwait(false);
-                }
             }
             else
             {
@@ -206,21 +205,17 @@ public static class AddCommand
         var toAdd = new List<string>();
         var skipped = new List<string>();
         foreach (var name in names)
-        {
             if (config.Skills.OfType<RegularSkillDependency>().Any(s => s.Name == name))
                 skipped.Add(name);
             else
                 toAdd.Add(name);
-        }
 
         if (toAdd.Count == 0)
             throw new AddException("All specified skills already exist in agents.toml.");
 
         foreach (var name in toAdd)
-        {
             await ConfigWriter.AddSkillToConfigAsync(scope.ConfigPath, name, sourceForStorage, effectiveRef, ct: ct)
                 .ConfigureAwait(false);
-        }
 
         await InstallCommand.RunInstallAsync(new InstallOptions(scope), ct).ConfigureAwait(false);
         return AddResult.Multiple(toAdd, skipped);
@@ -253,6 +248,7 @@ public static class AddCommand
                         positionals.Add(args[i]);
                     break;
             }
+
             i++;
         }
 
@@ -282,7 +278,7 @@ public static class AddCommand
                 : ScopeResolver.ResolveDefaultScope(Path.GetFullPath("."));
             await EnsureUserScope.EnsureUserScopeBootstrappedAsync(scope, ct).ConfigureAwait(false);
 
-            var result = await RunAddAsync(new AddOptions(scope, specifier, refValue, names, allFlag, false), ct)
+            var result = await RunAddAsync(new AddOptions(scope, specifier, refValue, names, allFlag), ct)
                 .ConfigureAwait(false);
 
             foreach (var dup in result.SkippedDuplicates)
@@ -297,7 +293,10 @@ public static class AddCommand
 
             return 0;
         }
-        catch (AddCancelledException) { return 0; }
+        catch (AddCancelledException)
+        {
+            return 0;
+        }
         catch (Exception ex) when (ex is ScopeException or AddException or TrustException)
         {
             Console.Error.WriteLine(ex.Message);

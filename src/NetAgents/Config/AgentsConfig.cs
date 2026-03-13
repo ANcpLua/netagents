@@ -1,6 +1,6 @@
-using System.Text.RegularExpressions;
-
 namespace NetAgents.Config;
+
+using System.Text.RegularExpressions;
 
 public static partial class SourcePatterns
 {
@@ -52,7 +52,13 @@ public sealed record McpConfig(
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
-public enum HookEvent { PreToolUse, PostToolUse, UserPromptSubmit, Stop }
+public enum HookEvent
+{
+    PreToolUse,
+    PostToolUse,
+    UserPromptSubmit,
+    Stop
+}
 
 public sealed record HookConfig(HookEvent Event, string? Matcher, string Command);
 
@@ -72,7 +78,11 @@ public sealed record SymlinksConfig(IReadOnlyList<string> Targets);
 
 // ── Repository source ─────────────────────────────────────────────────────────
 
-public enum RepositorySource { Github, Gitlab }
+public enum RepositorySource
+{
+    Github,
+    Gitlab
+}
 
 // ── Root config ───────────────────────────────────────────────────────────────
 
@@ -95,10 +105,15 @@ public sealed class ConfigException(string message) : Exception(message);
 
 public static class SkillDependencyHelpers
 {
-    public static bool IsWildcardDep(SkillDependency dep) => dep is WildcardSkillDependency;
+    public static bool IsWildcardDep(SkillDependency dep)
+    {
+        return dep is WildcardSkillDependency;
+    }
 
-    public static bool IsValidSkillName(string name) =>
-        SourcePatterns.ValidSkillName().IsMatch(name);
+    public static bool IsValidSkillName(string name)
+    {
+        return SourcePatterns.ValidSkillName().IsMatch(name);
+    }
 
     public static bool IsValidSkillSource(string source)
     {
@@ -137,7 +152,8 @@ public static class AgentsConfigValidator
                 throw new ConfigException($"Invalid skill source: '{skill.Source}'.");
 
             if (skill is RegularSkillDependency reg && !SkillDependencyHelpers.IsValidSkillName(reg.Name))
-                throw new ConfigException($"Invalid skill name: '{reg.Name}'. Must match ^[a-zA-Z0-9][a-zA-Z0-9._-]*$.");
+                throw new ConfigException(
+                    $"Invalid skill name: '{reg.Name}'. Must match ^[a-zA-Z0-9][a-zA-Z0-9._-]*$.");
         }
 
         foreach (var mcp in config.Mcp)
@@ -149,7 +165,8 @@ public static class AgentsConfigValidator
             var hasHttp = mcp.Url is not null;
 
             if (!hasStdio && !hasHttp)
-                throw new ConfigException($"MCP server '{mcp.Name}' must specify either 'command' (stdio) or 'url' (http).");
+                throw new ConfigException(
+                    $"MCP server '{mcp.Name}' must specify either 'command' (stdio) or 'url' (http).");
 
             if (hasStdio && hasHttp)
                 throw new ConfigException($"MCP server '{mcp.Name}' must specify 'command' or 'url', not both.");

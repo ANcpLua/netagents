@@ -1,6 +1,6 @@
-using Qyl.Agents.Generator.Models;
-
 namespace Qyl.Agents.Generator.Generation;
+
+using Models;
 
 internal static class MetadataEmitter
 {
@@ -51,5 +51,8 @@ internal static class MetadataEmitter
         }
     }
 
-    private static string Lit(string? value) => EmitHelpers.Lit(value);
+    private static string Lit(string? value)
+    {
+        return EmitHelpers.Lit(value);
+    }
 }

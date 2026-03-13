@@ -3,33 +3,29 @@ namespace NetAgents.Skills;
 public sealed record DiscoveredSkill(string Path, SkillMeta Meta);
 
 /// <summary>
-/// Scans conventional directories for skills (directories containing SKILL.md).
+///     Scans conventional directories for skills (directories containing SKILL.md).
 /// </summary>
 public static class SkillDiscovery
 {
     /// <summary>
-    /// Conventional root dir scanned flat (direct children only).
+    ///     Conventional root dir scanned flat (direct children only).
     /// </summary>
     private const string RootScanDir = ".";
 
     /// <summary>
-    /// Directories scanned recursively to handle categorized layouts.
+    ///     Directories scanned recursively to handle categorized layouts.
     /// </summary>
     private static readonly string[] RecursiveScanDirs = ["skills", ".agents/skills", ".claude/skills"];
-
-    private sealed record ScanDir(string Dir, bool Recursive);
 
     private static readonly ScanDir[] AllScanDirs =
     [
         new(RootScanDir, false),
-        ..RecursiveScanDirs.Select(d => new ScanDir(d, true)),
+        ..RecursiveScanDirs.Select(d => new ScanDir(d, true))
     ];
 
-    private sealed record SkillDir(string AbsPath, string RelPath);
-
     /// <summary>
-    /// Discover a specific skill by name within a repo directory.
-    /// Scans conventional directories in priority order, recursing into subdirectories until SKILL.md is found.
+    ///     Discover a specific skill by name within a repo directory.
+    ///     Scans conventional directories in priority order, recursing into subdirectories until SKILL.md is found.
     /// </summary>
     public static async Task<DiscoveredSkill?> DiscoverSkillAsync(
         string repoDir,
@@ -54,7 +50,7 @@ public static class SkillDiscovery
                 try
                 {
                     var meta = await SkillLoader.LoadSkillMdAsync(
-                        System.IO.Path.Combine(sd.AbsPath, "SKILL.md"), ct).ConfigureAwait(false);
+                        Path.Combine(sd.AbsPath, "SKILL.md"), ct).ConfigureAwait(false);
 
                     if (dirNameMatch is null && dirName == skillName)
                         dirNameMatch = new DiscoveredSkill(fullRelPath, meta);
@@ -84,8 +80,8 @@ public static class SkillDiscovery
     }
 
     /// <summary>
-    /// Discover all skills in a repo.
-    /// Scans conventional directories recursively and returns everything found.
+    ///     Discover all skills in a repo.
+    ///     Scans conventional directories recursively and returns everything found.
     /// </summary>
     public static async Task<IReadOnlyList<DiscoveredSkill>> DiscoverAllSkillsAsync(
         string repoDir,
@@ -99,11 +95,10 @@ public static class SkillDiscovery
                 .ConfigureAwait(false);
 
             foreach (var sd in skillDirs)
-            {
                 try
                 {
                     var meta = await SkillLoader.LoadSkillMdAsync(
-                        System.IO.Path.Combine(sd.AbsPath, "SKILL.md"), ct).ConfigureAwait(false);
+                        Path.Combine(sd.AbsPath, "SKILL.md"), ct).ConfigureAwait(false);
 
                     // First match wins (higher priority scan dirs are checked first)
                     if (found.ContainsKey(meta.Name))
@@ -118,22 +113,18 @@ public static class SkillDiscovery
                 {
                     // Skip skills with invalid SKILL.md
                 }
-            }
         }
 
         // Marketplace format: plugins/*/skills/*/SKILL.md
         var marketplaceSkills = await ScanMarketplaceFormatAsync(repoDir, ct).ConfigureAwait(false);
-        foreach (var skill in marketplaceSkills)
-        {
-            found.TryAdd(skill.Meta.Name, skill);
-        }
+        foreach (var skill in marketplaceSkills) found.TryAdd(skill.Meta.Name, skill);
 
         return [.. found.Values];
     }
 
     /// <summary>
-    /// List skill directories within a scan dir.
-    /// Root dir is scanned flat; other dirs are walked recursively.
+    ///     List skill directories within a scan dir.
+    ///     Root dir is scanned flat; other dirs are walked recursively.
     /// </summary>
     private static async Task<List<SkillDir>> ListSkillDirsAsync(
         string repoDir,
@@ -141,7 +132,7 @@ public static class SkillDiscovery
         bool recursive,
         CancellationToken ct)
     {
-        var absDir = System.IO.Path.Combine(repoDir, scanDir);
+        var absDir = Path.Combine(repoDir, scanDir);
 
         if (recursive)
             return await WalkSkillDirsAsync(absDir, "", ct).ConfigureAwait(false);
@@ -164,7 +155,7 @@ public static class SkillDiscovery
         foreach (var subDir in dirInfo.EnumerateDirectories())
         {
             ct.ThrowIfCancellationRequested();
-            if (File.Exists(System.IO.Path.Combine(subDir.FullName, "SKILL.md")))
+            if (File.Exists(Path.Combine(subDir.FullName, "SKILL.md")))
                 results.Add(new SkillDir(subDir.FullName, subDir.Name));
         }
 
@@ -172,8 +163,8 @@ public static class SkillDiscovery
     }
 
     /// <summary>
-    /// Recursively walk a directory tree finding all directories that contain SKILL.md.
-    /// Stops descending into a directory once SKILL.md is found (skill dirs are leaf nodes).
+    ///     Recursively walk a directory tree finding all directories that contain SKILL.md.
+    ///     Stops descending into a directory once SKILL.md is found (skill dirs are leaf nodes).
     /// </summary>
     private static async Task<List<SkillDir>> WalkSkillDirsAsync(
         string baseDir,
@@ -204,7 +195,7 @@ public static class SkillDiscovery
                 ? $"{relPrefix}/{subDir.Name}"
                 : subDir.Name;
 
-            if (File.Exists(System.IO.Path.Combine(absPath, "SKILL.md")))
+            if (File.Exists(Path.Combine(absPath, "SKILL.md")))
             {
                 // This is a skill directory -- collect it and don't descend further
                 direct.Add(new SkillDir(absPath, relPath));
@@ -226,11 +217,11 @@ public static class SkillDiscovery
         string repoDir,
         CancellationToken ct)
     {
-        var pluginMarkerDir = System.IO.Path.Combine(repoDir, ".claude-plugin");
+        var pluginMarkerDir = Path.Combine(repoDir, ".claude-plugin");
         if (!Directory.Exists(pluginMarkerDir))
             return [];
 
-        var pluginsDirPath = System.IO.Path.Combine(repoDir, "plugins");
+        var pluginsDirPath = Path.Combine(repoDir, "plugins");
         if (!Directory.Exists(pluginsDirPath))
             return [];
 
@@ -249,7 +240,7 @@ public static class SkillDiscovery
         foreach (var plugin in pluginsInfo.EnumerateDirectories())
         {
             ct.ThrowIfCancellationRequested();
-            var skillsDir = System.IO.Path.Combine(plugin.FullName, "skills");
+            var skillsDir = Path.Combine(plugin.FullName, "skills");
             if (!Directory.Exists(skillsDir))
                 continue;
 
@@ -266,7 +257,7 @@ public static class SkillDiscovery
             foreach (var entry in skillsInfo.EnumerateDirectories())
             {
                 ct.ThrowIfCancellationRequested();
-                var skillMdPath = System.IO.Path.Combine(entry.FullName, "SKILL.md");
+                var skillMdPath = Path.Combine(entry.FullName, "SKILL.md");
                 if (!File.Exists(skillMdPath))
                     continue;
 
@@ -292,11 +283,11 @@ public static class SkillDiscovery
         string skillName,
         CancellationToken ct)
     {
-        var pluginMarkerDir = System.IO.Path.Combine(repoDir, ".claude-plugin");
+        var pluginMarkerDir = Path.Combine(repoDir, ".claude-plugin");
         if (!Directory.Exists(pluginMarkerDir))
             return null;
 
-        var pluginsDirPath = System.IO.Path.Combine(repoDir, "plugins");
+        var pluginsDirPath = Path.Combine(repoDir, "plugins");
         if (!Directory.Exists(pluginsDirPath))
             return null;
 
@@ -313,7 +304,7 @@ public static class SkillDiscovery
         foreach (var plugin in pluginsInfo.EnumerateDirectories())
         {
             ct.ThrowIfCancellationRequested();
-            var skillMdPath = System.IO.Path.Combine(
+            var skillMdPath = Path.Combine(
                 plugin.FullName, "skills", skillName, "SKILL.md");
             if (!File.Exists(skillMdPath))
                 continue;
@@ -333,4 +324,8 @@ public static class SkillDiscovery
 
         return null;
     }
+
+    private sealed record ScanDir(string Dir, bool Recursive);
+
+    private sealed record SkillDir(string AbsPath, string RelPath);
 }

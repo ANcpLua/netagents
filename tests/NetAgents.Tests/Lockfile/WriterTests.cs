@@ -1,7 +1,7 @@
+namespace NetAgents.Tests.Lockfile;
+
 using NetAgents.Lockfile;
 using Xunit;
-
-namespace NetAgents.Tests.Lockfile;
 
 public class WriterTests : IAsyncLifetime
 {
@@ -17,7 +17,7 @@ public class WriterTests : IAsyncLifetime
     public async ValueTask DisposeAsync()
     {
         if (Directory.Exists(_dir))
-            Directory.Delete(_dir, recursive: true);
+            Directory.Delete(_dir, true);
         await ValueTask.CompletedTask;
     }
 
@@ -28,10 +28,10 @@ public class WriterTests : IAsyncLifetime
         var data = new LockfileData(1, new Dictionary<string, LockedSkill>
         {
             ["pdf-processing"] = new LockedGitSkill(
-                Source: "anthropics/skills",
-                ResolvedUrl: "https://github.com/anthropics/skills.git",
-                ResolvedPath: "pdf-processing",
-                ResolvedRef: "v1.2.0"),
+                "anthropics/skills",
+                "https://github.com/anthropics/skills.git",
+                "pdf-processing",
+                "v1.2.0")
         });
 
         await LockfileWriter.WriteAsync(lockPath, data, TestContext.Current.CancellationToken);
@@ -48,7 +48,7 @@ public class WriterTests : IAsyncLifetime
         var lockPath = Path.Combine(_dir, "agents.lock");
         var data = new LockfileData(1, new Dictionary<string, LockedSkill>
         {
-            ["my-skill"] = new LockedLocalSkill(Source: "path:../shared/my-skill"),
+            ["my-skill"] = new LockedLocalSkill("path:../shared/my-skill")
         });
 
         await LockfileWriter.WriteAsync(lockPath, data, TestContext.Current.CancellationToken);
@@ -64,8 +64,8 @@ public class WriterTests : IAsyncLifetime
         var lockPath = Path.Combine(_dir, "agents.lock");
         var data = new LockfileData(1, new Dictionary<string, LockedSkill>
         {
-            ["z-skill"] = new LockedLocalSkill(Source: "org/z-repo"),
-            ["a-skill"] = new LockedLocalSkill(Source: "org/a-repo"),
+            ["z-skill"] = new LockedLocalSkill("org/z-repo"),
+            ["a-skill"] = new LockedLocalSkill("org/a-repo")
         });
 
         await LockfileWriter.WriteAsync(lockPath, data, TestContext.Current.CancellationToken);
@@ -82,7 +82,7 @@ public class WriterTests : IAsyncLifetime
         var lockPath = Path.Combine(_dir, "agents.lock");
         var data = new LockfileData(1, new Dictionary<string, LockedSkill>
         {
-            ["test-skill"] = new LockedLocalSkill(Source: "org/repo"),
+            ["test-skill"] = new LockedLocalSkill("org/repo")
         });
 
         await LockfileWriter.WriteAsync(lockPath, data, TestContext.Current.CancellationToken);
@@ -95,7 +95,8 @@ public class WriterTests : IAsyncLifetime
     [Fact]
     public async Task ReturnsNullForMissingLockfile()
     {
-        var result = await LockfileLoader.LoadAsync(Path.Combine(_dir, "nope.lock"), TestContext.Current.CancellationToken);
+        var result =
+            await LockfileLoader.LoadAsync(Path.Combine(_dir, "nope.lock"), TestContext.Current.CancellationToken);
         Assert.Null(result);
     }
 }

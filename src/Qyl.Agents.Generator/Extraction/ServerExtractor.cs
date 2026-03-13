@@ -1,7 +1,6 @@
-using ANcpLua.Roslyn.Utilities;
-using Qyl.Agents.Generator.Models;
-
 namespace Qyl.Agents.Generator.Extraction;
+
+using Models;
 
 internal static class ServerExtractor
 {
@@ -48,13 +47,13 @@ internal static class ServerExtractor
 
             return ExtractTools(symbol, context.SemanticModel.Compilation, cancellationToken)
                 .Select(tools => new ServerModel(
-                    Namespace: namespaceName,
-                    ClassName: symbol.Name,
-                    ServerName: serverName,
-                    Description: description,
-                    Version: version,
-                    DeclarationChain: declarations,
-                    Tools: tools));
+                    namespaceName,
+                    symbol.Name,
+                    serverName,
+                    description,
+                    version,
+                    declarations,
+                    tools));
         });
     }
 

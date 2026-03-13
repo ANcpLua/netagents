@@ -1,11 +1,13 @@
+namespace NetAgents.Tests.Skills;
+
 using NetAgents.Skills;
 using Xunit;
-
-namespace NetAgents.Tests.Skills;
 
 public class DiscoverSkillTests : IAsyncLifetime
 {
     private string _repoDir = null!;
+
+    private CancellationToken CT => TestContext.Current.CancellationToken;
 
     public async ValueTask InitializeAsync()
     {
@@ -17,14 +19,14 @@ public class DiscoverSkillTests : IAsyncLifetime
     public async ValueTask DisposeAsync()
     {
         if (Directory.Exists(_repoDir))
-            Directory.Delete(_repoDir, recursive: true);
+            Directory.Delete(_repoDir, true);
         await ValueTask.CompletedTask;
     }
 
-    private CancellationToken CT => TestContext.Current.CancellationToken;
-
-    private static string SkillMd(string name) =>
-        $"---\nname: {name}\ndescription: Test skill {name}\n---\n\n# {name}\n";
+    private static string SkillMd(string name)
+    {
+        return $"---\nname: {name}\ndescription: Test skill {name}\n---\n\n# {name}\n";
+    }
 
     private async Task WriteSkillAsync(string relativePath, string name)
     {
@@ -195,6 +197,8 @@ public class DiscoverAllSkillsTests : IAsyncLifetime
 {
     private string _repoDir = null!;
 
+    private CancellationToken CT => TestContext.Current.CancellationToken;
+
     public async ValueTask InitializeAsync()
     {
         _repoDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -205,14 +209,14 @@ public class DiscoverAllSkillsTests : IAsyncLifetime
     public async ValueTask DisposeAsync()
     {
         if (Directory.Exists(_repoDir))
-            Directory.Delete(_repoDir, recursive: true);
+            Directory.Delete(_repoDir, true);
         await ValueTask.CompletedTask;
     }
 
-    private CancellationToken CT => TestContext.Current.CancellationToken;
-
-    private static string SkillMd(string name) =>
-        $"---\nname: {name}\ndescription: Test skill {name}\n---\n\n# {name}\n";
+    private static string SkillMd(string name)
+    {
+        return $"---\nname: {name}\ndescription: Test skill {name}\n---\n\n# {name}\n";
+    }
 
     private async Task WriteSkillAsync(string relativePath, string name)
     {

@@ -1,11 +1,11 @@
-using NetAgents.Agents;
-using NetAgents.Config;
-using NetAgents.Gitignore;
-using NetAgents.Lockfile;
-using NetAgents.Skills;
-using NetAgents.Symlinks;
-
 namespace NetAgents.Cli.Commands;
+
+using Agents;
+using Config;
+using Gitignore;
+using Lockfile;
+using Skills;
+using Symlinks;
 
 public sealed record SyncIssue(string Type, string Name, string Message);
 
@@ -22,14 +22,17 @@ public sealed record SyncResult(
 
 public static class SyncCommand
 {
-    private static bool IsInPlaceSkill(string source) =>
-        source.StartsWith("path:.agents/skills/", StringComparison.Ordinal) ||
-        source.StartsWith("path:skills/", StringComparison.Ordinal);
+    private static bool IsInPlaceSkill(string source)
+    {
+        return source.StartsWith("path:.agents/skills/", StringComparison.Ordinal) ||
+               source.StartsWith("path:skills/", StringComparison.Ordinal);
+    }
 
     public static async Task<SyncResult> RunSyncAsync(SyncOptions opts, CancellationToken ct = default)
     {
         var scope = opts.Scope;
-        var (configPath, lockPath, agentsDir, skillsDir) = (scope.ConfigPath, scope.LockPath, scope.AgentsDir, scope.SkillsDir);
+        var (configPath, lockPath, agentsDir, skillsDir) =
+            (scope.ConfigPath, scope.LockPath, scope.AgentsDir, scope.SkillsDir);
 
         var config = await ConfigLoader.LoadAsync(configPath, ct).ConfigureAwait(false);
         var lockfile = await LockfileLoader.LoadAsync(lockPath, ct).ConfigureAwait(false);
@@ -43,10 +46,8 @@ public static class SyncCommand
                 config.Skills.OfType<WildcardSkillDependency>().Select(s => SkillResolver.NormalizeSource(s.Source)),
                 StringComparer.Ordinal);
             foreach (var (name, locked) in lockfile.Skills)
-            {
                 if (wildcardSources.Contains(SkillResolver.NormalizeSource(locked.Source)))
                     declaredNames.Add(name);
-            }
         }
 
         var issues = new List<SyncIssue>();
@@ -71,7 +72,8 @@ public static class SyncCommand
 
             if (adopted.Count > 0)
             {
-                var mergedSkills = new Dictionary<string, LockedSkill>(lockfile?.Skills ?? new Dictionary<string, LockedSkill>());
+                var mergedSkills =
+                    new Dictionary<string, LockedSkill>(lockfile?.Skills ?? new Dictionary<string, LockedSkill>());
                 foreach (var (name, entry) in adoptedLockEntries)
                     mergedSkills[name] = entry;
                 await LockfileWriter.WriteAsync(lockPath, new LockfileData(1, mergedSkills), ct)
@@ -98,16 +100,15 @@ public static class SyncCommand
             await GitignoreWriter.WriteAgentsGitignoreAsync(agentsDir, managedNames, ct).ConfigureAwait(false);
             gitignoreUpdated = true;
 
-            missingGitignore = await GitignoreWriter.CheckRootGitignoreEntriesAsync(scope.Root, ct).ConfigureAwait(false);
+            missingGitignore =
+                await GitignoreWriter.CheckRootGitignoreEntriesAsync(scope.Root, ct).ConfigureAwait(false);
         }
 
         // 3. Check for missing skills
         foreach (var name in declaredNames)
-        {
             if (!Directory.Exists(Path.Combine(skillsDir, name)))
                 issues.Add(new SyncIssue("missing", name,
                     $"\"{name}\" is in agents.toml but not installed. Run 'netagents install'."));
-        }
 
         // 4. Verify and repair symlinks
         var symlinksRepaired = 0;
@@ -201,7 +202,8 @@ public static class SyncCommand
             }
         }
 
-        return new SyncResult(issues, adopted, gitignoreUpdated, symlinksRepaired, mcpRepaired, hooksRepaired, missingGitignore);
+        return new SyncResult(issues, adopted, gitignoreUpdated, symlinksRepaired, mcpRepaired, hooksRepaired,
+            missingGitignore);
     }
 
     public static async Task<int> ExecuteAsync(string[] args, bool isUser, CancellationToken ct = default)
@@ -223,7 +225,8 @@ public static class SyncCommand
         var result = await RunSyncAsync(new SyncOptions(scope), ct).ConfigureAwait(false);
 
         if (result.MissingRootGitignoreEntries.Count > 0)
-            Console.WriteLine($"Warning: {string.Join(", ", result.MissingRootGitignoreEntries)} should be in .gitignore. Run 'netagents doctor --fix' to fix.");
+            Console.WriteLine(
+                $"Warning: {string.Join(", ", result.MissingRootGitignoreEntries)} should be in .gitignore. Run 'netagents doctor --fix' to fix.");
 
         if (result.Adopted.Count > 0)
             Console.WriteLine($"Adopted {result.Adopted.Count} orphan(s): {string.Join(", ", result.Adopted)}");
@@ -243,7 +246,6 @@ public static class SyncCommand
         }
 
         foreach (var issue in result.Issues)
-        {
             switch (issue.Type)
             {
                 case "mcp" or "hooks":
@@ -253,7 +255,6 @@ public static class SyncCommand
                     Console.WriteLine($"  error: {issue.Message}");
                     break;
             }
-        }
 
         return 0;
     }

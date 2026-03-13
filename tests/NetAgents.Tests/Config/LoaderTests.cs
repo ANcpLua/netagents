@@ -1,11 +1,14 @@
+namespace NetAgents.Tests.Config;
+
 using NetAgents.Config;
 using Xunit;
-
-namespace NetAgents.Tests.Config;
 
 public class LoaderTests : IAsyncLifetime
 {
     private string _dir = null!;
+
+    private string ConfigPath => Path.Combine(_dir, "agents.toml");
+    private CancellationToken CT => TestContext.Current.CancellationToken;
 
     public async ValueTask InitializeAsync()
     {
@@ -17,24 +20,21 @@ public class LoaderTests : IAsyncLifetime
     public async ValueTask DisposeAsync()
     {
         if (Directory.Exists(_dir))
-            Directory.Delete(_dir, recursive: true);
+            Directory.Delete(_dir, true);
         await ValueTask.CompletedTask;
     }
-
-    private string ConfigPath => Path.Combine(_dir, "agents.toml");
-    private CancellationToken CT => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task LoadsValidConfig()
     {
         await File.WriteAllTextAsync(ConfigPath, """
-            version = 1
+                                                 version = 1
 
-            [[skills]]
-            name = "pdf"
-            source = "anthropics/skills"
-            ref = "v1.0.0"
-            """, CT);
+                                                 [[skills]]
+                                                 name = "pdf"
+                                                 source = "anthropics/skills"
+                                                 ref = "v1.0.0"
+                                                 """, CT);
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
@@ -59,8 +59,7 @@ public class LoaderTests : IAsyncLifetime
     [Fact]
     public async Task ThrowsConfigExceptionForMissingFile()
     {
-        await Assert.ThrowsAsync<ConfigException>(
-            () => ConfigLoader.LoadAsync(Path.Combine(_dir, "nope.toml"), CT));
+        await Assert.ThrowsAsync<ConfigException>(() => ConfigLoader.LoadAsync(Path.Combine(_dir, "nope.toml"), CT));
     }
 
     [Fact]
@@ -68,8 +67,7 @@ public class LoaderTests : IAsyncLifetime
     {
         await File.WriteAllTextAsync(ConfigPath, "this is not valid toml {{{}}", CT);
 
-        await Assert.ThrowsAsync<ConfigException>(
-            () => ConfigLoader.LoadAsync(ConfigPath, CT));
+        await Assert.ThrowsAsync<ConfigException>(() => ConfigLoader.LoadAsync(ConfigPath, CT));
     }
 
     [Fact]
@@ -77,19 +75,18 @@ public class LoaderTests : IAsyncLifetime
     {
         await File.WriteAllTextAsync(ConfigPath, "version = 99\nfoo = \"bar\"\n", CT);
 
-        await Assert.ThrowsAsync<ConfigException>(
-            () => ConfigLoader.LoadAsync(ConfigPath, CT));
+        await Assert.ThrowsAsync<ConfigException>(() => ConfigLoader.LoadAsync(ConfigPath, CT));
     }
 
     [Fact]
     public async Task ParsesSymlinksConfig()
     {
         await File.WriteAllTextAsync(ConfigPath, """
-            version = 1
+                                                 version = 1
 
-            [symlinks]
-            targets = [".claude"]
-            """, CT);
+                                                 [symlinks]
+                                                 targets = [".claude"]
+                                                 """, CT);
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
@@ -101,15 +98,15 @@ public class LoaderTests : IAsyncLifetime
     public async Task LoadsConfigWithAgentsAndMcp()
     {
         await File.WriteAllTextAsync(ConfigPath, """
-            version = 1
-            agents = ["claude", "cursor"]
+                                                 version = 1
+                                                 agents = ["claude", "cursor"]
 
-            [[mcp]]
-            name = "github"
-            command = "npx"
-            args = ["-y", "@mcp/server-github"]
-            env = ["GITHUB_TOKEN"]
-            """, CT);
+                                                 [[mcp]]
+                                                 name = "github"
+                                                 command = "npx"
+                                                 args = ["-y", "@mcp/server-github"]
+                                                 env = ["GITHUB_TOKEN"]
+                                                 """, CT);
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
@@ -123,8 +120,7 @@ public class LoaderTests : IAsyncLifetime
     {
         await File.WriteAllTextAsync(ConfigPath, "version = 1\nagents = [\"claude\", \"emacs\"]\n", CT);
 
-        var ex = await Assert.ThrowsAsync<ConfigException>(
-            () => ConfigLoader.LoadAsync(ConfigPath, CT));
+        var ex = await Assert.ThrowsAsync<ConfigException>(() => ConfigLoader.LoadAsync(ConfigPath, CT));
         Assert.Matches("Unknown agent.*emacs", ex.Message);
     }
 
@@ -169,10 +165,10 @@ public class LoaderTests : IAsyncLifetime
     public async Task RejectsDuplicateWildcardSources()
     {
         await File.WriteAllTextAsync(ConfigPath,
-            "version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"getsentry/skills\"\n\n[[skills]]\nname = \"*\"\nsource = \"getsentry/skills\"\n", CT);
+            "version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"getsentry/skills\"\n\n[[skills]]\nname = \"*\"\nsource = \"getsentry/skills\"\n",
+            CT);
 
-        var ex = await Assert.ThrowsAsync<ConfigException>(
-            () => ConfigLoader.LoadAsync(ConfigPath, CT));
+        var ex = await Assert.ThrowsAsync<ConfigException>(() => ConfigLoader.LoadAsync(ConfigPath, CT));
         Assert.Contains("Duplicate wildcard", ex.Message);
     }
 
@@ -180,7 +176,8 @@ public class LoaderTests : IAsyncLifetime
     public async Task AllowsWildcardsFromDifferentSources()
     {
         await File.WriteAllTextAsync(ConfigPath,
-            "version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"getsentry/skills\"\n\n[[skills]]\nname = \"*\"\nsource = \"anthropics/skills\"\n", CT);
+            "version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"getsentry/skills\"\n\n[[skills]]\nname = \"*\"\nsource = \"anthropics/skills\"\n",
+            CT);
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
@@ -191,7 +188,8 @@ public class LoaderTests : IAsyncLifetime
     public async Task AllowsMixingWildcardAndRegularEntries()
     {
         await File.WriteAllTextAsync(ConfigPath,
-            "version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"getsentry/skills\"\n\n[[skills]]\nname = \"pdf\"\nsource = \"anthropics/skills\"\n", CT);
+            "version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"getsentry/skills\"\n\n[[skills]]\nname = \"pdf\"\nsource = \"anthropics/skills\"\n",
+            CT);
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 

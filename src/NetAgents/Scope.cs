@@ -1,8 +1,12 @@
-using System.Text.RegularExpressions;
-
 namespace NetAgents;
 
-public enum ScopeKind { Project, User }
+using System.Text.RegularExpressions;
+
+public enum ScopeKind
+{
+    Project,
+    User
+}
 
 public sealed record ScopeRoot(
     ScopeKind Scope,
@@ -24,26 +28,29 @@ public static partial class ScopeResolver
             var home = Environment.GetEnvironmentVariable("NETAGENTS_HOME")
                        ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".agents");
             return new ScopeRoot(
-                Scope: ScopeKind.User,
-                Root: home,
-                AgentsDir: home,
-                ConfigPath: Path.Combine(home, "agents.toml"),
-                LockPath: Path.Combine(home, "agents.lock"),
-                SkillsDir: Path.Combine(home, "skills"));
+                ScopeKind.User,
+                home,
+                home,
+                Path.Combine(home, "agents.toml"),
+                Path.Combine(home, "agents.lock"),
+                Path.Combine(home, "skills"));
         }
 
         var root = projectRoot ?? Directory.GetCurrentDirectory();
         var agentsDir = Path.Combine(root, ".agents");
         return new ScopeRoot(
-            Scope: ScopeKind.Project,
-            Root: root,
-            AgentsDir: agentsDir,
-            ConfigPath: Path.Combine(root, "agents.toml"),
-            LockPath: Path.Combine(root, "agents.lock"),
-            SkillsDir: Path.Combine(agentsDir, "skills"));
+            ScopeKind.Project,
+            root,
+            agentsDir,
+            Path.Combine(root, "agents.toml"),
+            Path.Combine(root, "agents.lock"),
+            Path.Combine(agentsDir, "skills"));
     }
 
-    public static bool IsInsideGitRepo(string dir) => FindGitDir(dir) is not null;
+    public static bool IsInsideGitRepo(string dir)
+    {
+        return FindGitDir(dir) is not null;
+    }
 
     public static string? FindGitDir(string dir)
     {

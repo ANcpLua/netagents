@@ -1,7 +1,7 @@
-using Qyl.Agents.Generator.Extraction;
-using Qyl.Agents.Generator.Generation;
-
 namespace Qyl.Agents.Generator;
+
+using Extraction;
+using Generation;
 
 [Generator]
 public sealed class McpServerGenerator : IIncrementalGenerator

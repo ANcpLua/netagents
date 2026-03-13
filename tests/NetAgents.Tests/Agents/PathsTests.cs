@@ -1,7 +1,7 @@
+namespace NetAgents.Tests.Agents;
+
 using NetAgents.Agents;
 using Xunit;
-
-namespace NetAgents.Tests.Agents;
 
 public class PathsTests
 {
@@ -50,8 +50,10 @@ public class PathsTests
     }
 
     [Fact]
-    public void ThrowsForUnknownAgent() =>
+    public void ThrowsForUnknownAgent()
+    {
         Assert.Throws<ArgumentException>(() => AgentPaths.GetUserMcpTarget("emacs"));
+    }
 
     // ── skill discovery paths ────────────────────────────────────────────────
 

@@ -1,16 +1,28 @@
+namespace NetAgents.Tests.Cli;
+
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
 using NetAgents.Lockfile;
-using NetAgents.Utils;
+using Utils;
 using Xunit;
-
-namespace NetAgents.Tests.Cli;
 
 file sealed class TempDir : IDisposable
 {
-    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
-    public TempDir() => Directory.CreateDirectory(Path);
-    public void Dispose() { if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true); }
+    public TempDir()
+    {
+        Directory.CreateDirectory(Path);
+    }
+
+    public string Path { get; } =
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+
+    public void Dispose()
+    {
+        if (!Directory.Exists(Path)) return;
+        foreach (var info in new DirectoryInfo(Path).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
+            info.Attributes = FileAttributes.Normal;
+        Directory.Delete(Path, true);
+    }
 }
 
 [Collection("SerialGit")]
@@ -22,9 +34,9 @@ public sealed class RemoveCommandTests
     {
         var repoDir = Path.Combine(parentDir, "repo");
         Directory.CreateDirectory(repoDir);
-        await ProcessRunner.RunAsync("git", ["init"], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["config", "user.email", "t@t.com"], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["config", "user.name", "T"], cwd: repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["init"], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["config", "user.email", "t@t.com"], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["config", "user.name", "T"], repoDir, ct: ct);
         foreach (var sp in skillPaths)
         {
             var dir = Path.Combine(repoDir, sp);
@@ -32,8 +44,9 @@ public sealed class RemoveCommandTests
             var name = Path.GetFileName(sp);
             File.WriteAllText(Path.Combine(dir, "SKILL.md"), $"---\nname: {name}\ndescription: T\n---\n");
         }
-        await ProcessRunner.RunAsync("git", ["add", "."], cwd: repoDir, ct: ct);
-        await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], cwd: repoDir, ct: ct);
+
+        await ProcessRunner.RunAsync("git", ["add", "."], repoDir, ct: ct);
+        await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], repoDir, ct: ct);
         return repoDir;
     }
 
@@ -63,7 +76,10 @@ public sealed class RemoveCommandTests
             Assert.NotNull(lockfile);
             Assert.False(lockfile.Skills.ContainsKey("pdf"));
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -75,8 +91,8 @@ public sealed class RemoveCommandTests
         File.WriteAllText(Path.Combine(project, "agents.toml"), "version = 1\n");
         var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
 
-        await Assert.ThrowsAsync<RemoveException>(
-            () => RemoveCommand.RunRemoveAsync(new RemoveOptions(scope, "nonexistent"), CT));
+        await Assert.ThrowsAsync<RemoveException>(() =>
+            RemoveCommand.RunRemoveAsync(new RemoveOptions(scope, "nonexistent"), CT));
     }
 
     [Fact]
@@ -100,7 +116,10 @@ public sealed class RemoveCommandTests
             Assert.NotNull(result.WildcardSource);
             Assert.NotNull(result.Hint);
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 
     [Fact]
@@ -124,6 +143,9 @@ public sealed class RemoveCommandTests
             Assert.DoesNotContain(config.Skills.OfType<RegularSkillDependency>(), s => s.Name == "pdf");
             Assert.True(config.Skills.OfType<WildcardSkillDependency>().Any());
         }
-        finally { Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", null);
+        }
     }
 }

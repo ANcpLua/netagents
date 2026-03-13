@@ -1,13 +1,13 @@
-using NetAgents.Agents;
-using NetAgents.Config;
-using NetAgents.Gitignore;
-using NetAgents.Lockfile;
-using NetAgents.Skills;
-using NetAgents.Symlinks;
-using NetAgents.Trust;
-using NetAgents.Utils;
-
 namespace NetAgents.Cli.Commands;
+
+using Agents;
+using Config;
+using Gitignore;
+using Lockfile;
+using Skills;
+using Symlinks;
+using Trust;
+using Utils;
 
 public sealed class InstallException(string message) : Exception(message);
 
@@ -21,14 +21,17 @@ public sealed record InstallResult(
 
 public static class InstallCommand
 {
-    private static bool IsInPlaceSkill(string source) =>
-        source.StartsWith("path:.agents/skills/", StringComparison.Ordinal) ||
-        source.StartsWith("path:skills/", StringComparison.Ordinal);
+    private static bool IsInPlaceSkill(string source)
+    {
+        return source.StartsWith("path:.agents/skills/", StringComparison.Ordinal) ||
+               source.StartsWith("path:skills/", StringComparison.Ordinal);
+    }
 
     public static async Task<InstallResult> RunInstallAsync(InstallOptions opts, CancellationToken ct = default)
     {
         var (scope, frozen, force) = (opts.Scope, opts.Frozen, opts.Force);
-        var (configPath, lockPath, agentsDir, skillsDir) = (scope.ConfigPath, scope.LockPath, scope.AgentsDir, scope.SkillsDir);
+        var (configPath, lockPath, agentsDir, skillsDir) =
+            (scope.ConfigPath, scope.LockPath, scope.AgentsDir, scope.SkillsDir);
 
         var config = await ConfigLoader.LoadAsync(configPath, ct).ConfigureAwait(false);
         var installed = new List<string>();
@@ -47,14 +50,10 @@ public static class InstallCommand
                 .ConfigureAwait(false);
 
             if (frozen)
-            {
                 foreach (var item in expanded)
-                {
                     if (!lockfile!.Skills.ContainsKey(item.Name))
                         throw new InstallException(
                             $"--frozen: skill \"{item.Name}\" is in agents.toml but missing from agents.lock.");
-                }
-            }
 
             var newLock = new LockfileData(1, new Dictionary<string, LockedSkill>());
 
@@ -68,18 +67,15 @@ public static class InstallCommand
 
                 ResolvedSkill resolved;
                 if (item.Resolved is not null)
-                {
                     resolved = item.Resolved;
-                }
                 else
-                {
                     try
                     {
                         var dep = item.Dep is RegularSkillDependency reg
                             ? reg
                             : new RegularSkillDependency(item.Name, item.Dep.Source, item.Dep.Ref, null);
                         resolved = await SkillResolver.ResolveSkillAsync(
-                            item.Name, dep, scope.Root, config.DefaultRepositorySource, ttl, ct)
+                                item.Name, dep, scope.Root, config.DefaultRepositorySource, ttl, ct)
                             .ConfigureAwait(false);
                     }
                     catch (Exception ex)
@@ -87,7 +83,6 @@ public static class InstallCommand
                         var msg = ex.Message;
                         throw new InstallException($"Failed to resolve skill \"{item.Name}\": {msg}");
                     }
-                }
 
                 var destDir = Path.Combine(skillsDir, item.Name);
                 if (Path.GetFullPath(resolved.SkillDir) != Path.GetFullPath(destDir))
@@ -98,7 +93,7 @@ public static class InstallCommand
                     ResolvedGitSkill g => g.ResolvedRef is not null
                         ? new LockedGitSkill(item.Dep.Source, g.ResolvedUrl, g.ResolvedPath, g.ResolvedRef)
                         : new LockedGitSkill(item.Dep.Source, g.ResolvedUrl, g.ResolvedPath, null),
-                    _ => new LockedLocalSkill(item.Dep.Source),
+                    _ => new LockedLocalSkill(item.Dep.Source)
                 };
 
                 newLock.Skills[item.Name] = lockEntry;
@@ -138,7 +133,8 @@ public static class InstallCommand
             }).ToList();
             await GitignoreWriter.WriteAgentsGitignoreAsync(agentsDir, managedNames, ct).ConfigureAwait(false);
 
-            missingGitignore = await GitignoreWriter.CheckRootGitignoreEntriesAsync(scope.Root, ct).ConfigureAwait(false);
+            missingGitignore =
+                await GitignoreWriter.CheckRootGitignoreEntriesAsync(scope.Root, ct).ConfigureAwait(false);
         }
 
         // Symlinks
@@ -169,7 +165,8 @@ public static class InstallCommand
                 var agent = AgentRegistry.GetAgent(agentId);
                 if (agent?.SkillsParentDir is null) continue;
                 if (!seenParentDirs.Add(agent.SkillsParentDir)) continue;
-                await SymlinkManager.EnsureSkillsSymlinkAsync(agentsDir, Path.Combine(scope.Root, agent.SkillsParentDir), ct)
+                await SymlinkManager
+                    .EnsureSkillsSymlinkAsync(agentsDir, Path.Combine(scope.Root, agent.SkillsParentDir), ct)
                     .ConfigureAwait(false);
             }
         }
@@ -194,8 +191,6 @@ public static class InstallCommand
 
         return new InstallResult(installed, pruned, hookWarnings, missingGitignore);
     }
-
-    private sealed record ExpandedSkill(string Name, SkillDependency Dep, ResolvedSkill? Resolved = null);
 
     private static async Task<List<ExpandedSkill>> ExpandSkillsAsync(
         AgentsConfig config,
@@ -244,11 +239,9 @@ public static class InstallCommand
 
                     if (wildcardNames.TryGetValue(item.Name, out var existingSource) &&
                         !SkillResolver.SourcesMatch(existingSource, wDep.Source))
-                    {
                         throw new InstallException(
                             $"Skill \"{item.Name}\" found in both wildcard sources: \"{existingSource}\" and \"{wDep.Source}\". " +
                             "Use an explicit [[skills]] entry or add it to one source's exclude list.");
-                    }
 
                     wildcardNames[item.Name] = wDep.Source;
                     expanded.Add(new ExpandedSkill(item.Name, wDep, item.Skill));
@@ -272,14 +265,17 @@ public static class InstallCommand
             await EnsureUserScope.EnsureUserScopeBootstrappedAsync(scope, ct).ConfigureAwait(false);
 
             if (frozen)
-                Console.WriteLine("Warning: --frozen is deprecated and will be removed in a future release. Pinning is now managed via agents.toml refs.");
+                Console.WriteLine(
+                    "Warning: --frozen is deprecated and will be removed in a future release. Pinning is now managed via agents.toml refs.");
 
             var result = await RunInstallAsync(new InstallOptions(scope, frozen, force), ct).ConfigureAwait(false);
 
             if (result.MissingRootGitignoreEntries.Count > 0)
-                Console.WriteLine($"Warning: {string.Join(", ", result.MissingRootGitignoreEntries)} should be in .gitignore. Run 'netagents doctor --fix' to fix.");
+                Console.WriteLine(
+                    $"Warning: {string.Join(", ", result.MissingRootGitignoreEntries)} should be in .gitignore. Run 'netagents doctor --fix' to fix.");
             if (result.Installed.Count > 0)
-                Console.WriteLine($"Installed {result.Installed.Count} skill(s): {string.Join(", ", result.Installed)}");
+                Console.WriteLine(
+                    $"Installed {result.Installed.Count} skill(s): {string.Join(", ", result.Installed)}");
             if (result.Pruned.Count > 0)
                 Console.WriteLine($"Pruned {result.Pruned.Count} stale skill(s): {string.Join(", ", result.Pruned)}");
             foreach (var w in result.HookWarnings)
@@ -292,4 +288,6 @@ public static class InstallCommand
             return 1;
         }
     }
+
+    private sealed record ExpandedSkill(string Name, SkillDependency Dep, ResolvedSkill? Resolved = null);
 }

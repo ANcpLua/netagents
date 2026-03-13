@@ -1,7 +1,8 @@
+namespace NetAgents.Utils;
+
+using System.Collections;
 using System.Diagnostics;
 using System.Text;
-
-namespace NetAgents.Utils;
 
 public record ProcessResult(string Stdout, string Stderr);
 
@@ -32,7 +33,7 @@ public static class ProcessRunner
             UseShellExecute = false,
             CreateNoWindow = true,
             StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8
         };
 
         foreach (var arg in args)
@@ -42,17 +43,15 @@ public static class ProcessRunner
             startInfo.WorkingDirectory = cwd;
 
         // Inherit current environment, then apply git safety defaults, then user overrides
-        foreach (System.Collections.DictionaryEntry entry in System.Environment.GetEnvironmentVariables())
+        foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
             startInfo.Environment[(string)entry.Key] = (string?)entry.Value ?? string.Empty;
 
         startInfo.Environment["GIT_TERMINAL_PROMPT"] = "0";
         startInfo.Environment["GIT_SSH_COMMAND"] = "ssh -o BatchMode=yes";
 
         if (env is not null)
-        {
             foreach (var (key, value) in env)
                 startInfo.Environment[key] = value;
-        }
 
         using var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
 
@@ -75,11 +74,19 @@ public static class ProcessRunner
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             // Timeout fired, not external cancellation
-            try { process.Kill(entireProcessTree: true); } catch { /* best effort */ }
+            try
+            {
+                process.Kill(true);
+            }
+            catch
+            {
+                /* best effort */
+            }
+
             var timeoutStderr = stderrBuilder.ToString();
             throw new ProcessRunnerException(
                 $"{command} {string.Join(" ", args)} timed out after {timeoutMs}ms",
-                exitCode: null,
+                null,
                 timeoutStderr);
         }
 
@@ -87,18 +94,16 @@ public static class ProcessRunner
         var stderr = stderrBuilder.ToString();
 
         if (process.ExitCode != 0)
-        {
             throw new ProcessRunnerException(
                 $"{command} {string.Join(" ", args)} failed: {(stderr.Trim() is { Length: > 0 } msg ? msg : $"exit code {process.ExitCode}")}",
                 process.ExitCode,
                 stderr);
-        }
 
         return new ProcessResult(stdout, stderr);
     }
 
     private static async Task ReadStreamAsync(
-        System.IO.StreamReader reader,
+        StreamReader reader,
         StringBuilder builder,
         int maxBytes,
         CancellationToken ct)
@@ -108,7 +113,8 @@ public static class ProcessRunner
         while ((bytesRead = await reader.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
         {
             if (builder.Length + bytesRead > maxBytes)
-                throw new InvalidOperationException($"Process output exceeded maximum buffer size of {maxBytes} bytes.");
+                throw new InvalidOperationException(
+                    $"Process output exceeded maximum buffer size of {maxBytes} bytes.");
             builder.Append(buffer, 0, bytesRead);
         }
     }

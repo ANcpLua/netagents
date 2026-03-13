@@ -1,8 +1,8 @@
+namespace NetAgents.Tests.Trust;
+
 using NetAgents.Config;
 using NetAgents.Trust;
 using Xunit;
-
-namespace NetAgents.Tests.Trust;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -12,8 +12,10 @@ file static class TrustHelper
         bool allowAll = false,
         IReadOnlyList<string>? githubOrgs = null,
         IReadOnlyList<string>? githubRepos = null,
-        IReadOnlyList<string>? gitDomains = null) =>
-        new(allowAll, githubOrgs ?? [], githubRepos ?? [], gitDomains ?? []);
+        IReadOnlyList<string>? gitDomains = null)
+    {
+        return new TrustConfig(allowAll, githubOrgs ?? [], githubRepos ?? [], gitDomains ?? []);
+    }
 }
 
 // ── ValidateTrustedSource ────────────────────────────────────────────────────
@@ -33,7 +35,7 @@ public class ValidateTrustedSourceTests
     public async Task AllowsEverythingWhenAllowAllIsTrue()
     {
         await Task.CompletedTask;
-        var trust = TrustHelper.MakeTrust(allowAll: true);
+        var trust = TrustHelper.MakeTrust(true);
         TrustValidator.ValidateTrustedSource("evil/repo", trust);
         TrustValidator.ValidateTrustedSource("git:https://evil.com/repo.git", trust);
     }
@@ -42,7 +44,7 @@ public class ValidateTrustedSourceTests
     public async Task AllowsEverythingWhenAllowAllIsTrueEvenWithOtherRules()
     {
         await Task.CompletedTask;
-        var trust = TrustHelper.MakeTrust(allowAll: true, githubOrgs: ["getsentry"]);
+        var trust = TrustHelper.MakeTrust(true, ["getsentry"]);
         TrustValidator.ValidateTrustedSource("evil/repo", trust);
     }
 }

@@ -1,13 +1,22 @@
+namespace NetAgents.Tests.Cli;
+
 using NetAgents.Cli.Commands;
 using Xunit;
 
-namespace NetAgents.Tests.Cli;
-
 file sealed class TempDir : IDisposable
 {
-    public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
-    public TempDir() => Directory.CreateDirectory(Path);
-    public void Dispose() { if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true); }
+    public TempDir()
+    {
+        Directory.CreateDirectory(Path);
+    }
+
+    public string Path { get; } =
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+
+    public void Dispose()
+    {
+        if (Directory.Exists(Path)) Directory.Delete(Path, true);
+    }
 }
 
 public sealed class DoctorCommandTests
@@ -155,7 +164,7 @@ public sealed class DoctorCommandTests
         File.WriteAllText(Path.Combine(tmp.Path, ".agents", ".gitignore"), "# managed\n");
         var scope = ScopeResolver.ResolveScope(ScopeKind.Project, tmp.Path);
 
-        var result = await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope, Fix: true), CT);
+        var result = await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope, true), CT);
 
         Assert.True(result.Fixed > 0);
         var gitignore = await File.ReadAllTextAsync(Path.Combine(tmp.Path, ".gitignore"), CT);
@@ -173,7 +182,7 @@ public sealed class DoctorCommandTests
         File.WriteAllText(Path.Combine(tmp.Path, ".agents", ".gitignore"), "# managed\n");
         var scope = ScopeResolver.ResolveScope(ScopeKind.Project, tmp.Path);
 
-        await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope, Fix: true), CT);
+        await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope, true), CT);
 
         var content = await File.ReadAllTextAsync(Path.Combine(tmp.Path, "agents.toml"), CT);
         Assert.DoesNotMatch(@"^\s*pin\s*=", content);
@@ -190,7 +199,7 @@ public sealed class DoctorCommandTests
         File.WriteAllText(Path.Combine(tmp.Path, ".agents", ".gitignore"), "# managed\n");
         var scope = ScopeResolver.ResolveScope(ScopeKind.Project, tmp.Path);
 
-        await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope, Fix: true), CT);
+        await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope, true), CT);
 
         var content = await File.ReadAllTextAsync(Path.Combine(tmp.Path, "agents.toml"), CT);
         Assert.DoesNotContain("gitignore", content);
@@ -205,7 +214,7 @@ public sealed class DoctorCommandTests
         File.WriteAllText(Path.Combine(tmp.Path, ".gitignore"), "agents.lock\n.agents/.gitignore\n");
         var scope = ScopeResolver.ResolveScope(ScopeKind.Project, tmp.Path);
 
-        await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope, Fix: true), CT);
+        await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope, true), CT);
 
         Assert.True(File.Exists(Path.Combine(tmp.Path, ".agents", ".gitignore")));
     }

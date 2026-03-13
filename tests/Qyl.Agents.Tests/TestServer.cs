@@ -1,10 +1,10 @@
-using System.ComponentModel;
-
 namespace Qyl.Agents.Tests;
+
+using System.ComponentModel;
 
 /// <summary>A calculator MCP server for end-to-end testing.</summary>
 [McpServer]
-public partial class CalcServer
+public class CalcServer
 {
     public int CallCount { get; private set; }
 

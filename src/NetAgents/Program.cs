@@ -31,7 +31,7 @@ try
         "mcp" => await McpCommand.ExecuteAsync(rawArgs[1..], isUser, ct),
         "trust" => await TrustCommand.ExecuteAsync(rawArgs[1..], isUser, ct),
         "doctor" => await DoctorCommand.ExecuteAsync(rawArgs[1..], isUser, ct),
-        _ => UnknownCommand(command),
+        _ => UnknownCommand(command)
     };
 }
 catch (Exception ex)
@@ -43,26 +43,26 @@ catch (Exception ex)
 static int PrintUsage()
 {
     Console.WriteLine("""
-        netagents - package manager for .agents directories
+                      netagents - package manager for .agents directories
 
-        Usage: netagents [--user] <command> [options]
+                      Usage: netagents [--user] <command> [options]
 
-        Commands:
-          init        Initialize agents.toml and .agents/skills/
-          install     Install dependencies from agents.toml
-          add         Add a skill dependency
-          remove      Remove a skill dependency
-          sync        Reconcile gitignore, symlinks, verify state
-          list        Show installed skills
-          mcp         Manage MCP server declarations
-          trust       Manage trusted sources
-          doctor      Check project health and fix issues
+                      Commands:
+                        init        Initialize agents.toml and .agents/skills/
+                        install     Install dependencies from agents.toml
+                        add         Add a skill dependency
+                        remove      Remove a skill dependency
+                        sync        Reconcile gitignore, symlinks, verify state
+                        list        Show installed skills
+                        mcp         Manage MCP server declarations
+                        trust       Manage trusted sources
+                        doctor      Check project health and fix issues
 
-        Options:
-          --user      Operate on user-scope (~/.agents/) instead of project
-          --help, -h  Show this help message
-          --version   Show version
-        """);
+                      Options:
+                        --user      Operate on user-scope (~/.agents/) instead of project
+                        --help, -h  Show this help message
+                        --version   Show version
+                      """);
     return 0;
 }
 

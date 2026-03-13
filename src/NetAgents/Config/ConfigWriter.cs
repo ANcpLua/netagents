@@ -1,7 +1,7 @@
+namespace NetAgents.Config;
+
 using System.Text;
 using System.Text.RegularExpressions;
-
-namespace NetAgents.Config;
 
 public sealed record DefaultConfigOptions(
     IReadOnlyList<string>? Agents = null,
@@ -212,7 +212,6 @@ public static partial class ConfigWriter
 
         // First pass: find [trust] section and target field
         for (var j = 0; j < lines.Count; j++)
-        {
             if (lines[j].Trim() == "[trust]")
             {
                 trustSectionIdx = j;
@@ -224,7 +223,6 @@ public static partial class ConfigWriter
                 if (trimmed.StartsWith($"{field} ") || trimmed.StartsWith($"{field}="))
                     fieldLineIdx = j;
             }
-        }
 
         if (trustSectionIdx >= 0 && fieldLineIdx >= 0)
         {
@@ -243,6 +241,7 @@ public static partial class ConfigWriter
                     : $"{match.Groups[1].Value}[{newVal}]";
                 lines[fieldLineIdx] = indent + updated;
             }
+
             await File.WriteAllTextAsync(filePath, string.Join("\n", lines), Encoding.UTF8, ct).ConfigureAwait(false);
             return;
         }
@@ -258,6 +257,7 @@ public static partial class ConfigWriter
                 if (trimmed == "" && insertIdx + 1 < lines.Count && lines[insertIdx + 1].Trim().StartsWith('[')) break;
                 insertIdx++;
             }
+
             lines.Insert(insertIdx, $"{field} = {TomlArray([value])}");
             await File.WriteAllTextAsync(filePath, string.Join("\n", lines), Encoding.UTF8, ct).ConfigureAwait(false);
             return;
@@ -294,7 +294,6 @@ public static partial class ConfigWriter
         var trustSectionIdx = -1;
 
         for (var j = 0; j < lines.Count; j++)
-        {
             if (lines[j].Trim() == "[trust]")
             {
                 trustSectionIdx = j;
@@ -335,11 +334,11 @@ public static partial class ConfigWriter
                         lines[j] = $"{indent}{field} = [{string.Join(", ", filtered)}]";
                     }
 
-                    await File.WriteAllTextAsync(filePath, string.Join("\n", lines), Encoding.UTF8, ct).ConfigureAwait(false);
+                    await File.WriteAllTextAsync(filePath, string.Join("\n", lines), Encoding.UTF8, ct)
+                        .ConfigureAwait(false);
                     return;
                 }
             }
-        }
     }
 
     // ── Generate default config ──────────────────────────────────────────────────
@@ -381,7 +380,6 @@ public static partial class ConfigWriter
         }
 
         if (opts?.Skills is { Count: > 0 } skills)
-        {
             foreach (var skill in skills)
             {
                 sb.AppendLine();
@@ -391,7 +389,6 @@ public static partial class ConfigWriter
                 if (skill.Ref is not null) sb.AppendLine($"ref = {TomlQuote(skill.Ref)}");
                 if (skill.Path is not null) sb.AppendLine($"path = {TomlQuote(skill.Path)}");
             }
-        }
 
         return sb.ToString();
     }
@@ -450,6 +447,7 @@ public static partial class ConfigWriter
             if (trimmed.StartsWith('[')) return true;
             if (trimmed != "") return false;
         }
+
         return true;
     }
 
@@ -465,18 +463,24 @@ public static partial class ConfigWriter
             lines.RemoveRange(headerIdx, removeCount);
     }
 
-    private static string TomlQuote(string value) =>
-        $"\"{value.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+    private static string TomlQuote(string value)
+    {
+        return $"\"{value.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+    }
 
-    private static string TomlArray(IReadOnlyList<string> values) =>
-        $"[{string.Join(", ", values.Select(TomlQuote))}]";
+    private static string TomlArray(IReadOnlyList<string> values)
+    {
+        return $"[{string.Join(", ", values.Select(TomlQuote))}]";
+    }
 
     /// <summary>
-    /// TOML bare keys only allow A-Za-z0-9, -, _. Anything else must be quoted.
+    ///     TOML bare keys only allow A-Za-z0-9, -, _. Anything else must be quoted.
     /// </summary>
     [GeneratedRegex(@"^[A-Za-z0-9_-]+$")]
     private static partial Regex BareKeyPattern();
 
-    private static string TomlBareOrQuotedKey(string key) =>
-        BareKeyPattern().IsMatch(key) ? key : TomlQuote(key);
+    private static string TomlBareOrQuotedKey(string key)
+    {
+        return BareKeyPattern().IsMatch(key) ? key : TomlQuote(key);
+    }
 }

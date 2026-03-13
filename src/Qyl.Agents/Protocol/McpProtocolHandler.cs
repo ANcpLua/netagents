@@ -1,7 +1,7 @@
+namespace Qyl.Agents.Protocol;
+
 using System.Diagnostics;
 using System.Text.Json;
-
-namespace Qyl.Agents.Protocol;
 
 internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer : class, IMcpServer
 {
@@ -60,39 +60,59 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
 
     private static JsonRpcResponse HandleInitialize(JsonRpcRequest request)
     {
-        var result = JsonSerializer.SerializeToDocument(new
-        {
-            protocolVersion = "2024-11-05",
-            capabilities = new
-            {
-                tools = new { listChanged = false }
-            },
-            serverInfo = new
-            {
-                name = s_info.Name,
-                version = s_info.Version ?? "0.0.0"
-            }
-        });
+        return SuccessResponse(request.Id, BuildInitializeResult());
+    }
 
-        return SuccessResponse(request.Id, result.RootElement);
+    private static JsonElement BuildInitializeResult()
+    {
+        using var ms = new MemoryStream();
+        using (var w = new Utf8JsonWriter(ms))
+        {
+            w.WriteStartObject();
+            w.WriteString("protocolVersion", "2024-11-05");
+            w.WriteStartObject("capabilities");
+            w.WriteStartObject("tools");
+            w.WriteBoolean("listChanged", false);
+            w.WriteEndObject();
+            w.WriteEndObject();
+            w.WriteStartObject("serverInfo");
+            w.WriteString("name", s_info.Name);
+            w.WriteString("version", s_info.Version ?? "0.0.0");
+            w.WriteEndObject();
+            w.WriteEndObject();
+        }
+
+        return JsonDocument.Parse(ms.ToArray()).RootElement.Clone();
     }
 
     private static JsonRpcResponse HandleToolsList(JsonRpcRequest request)
     {
-        var tools = new List<object>(s_tools.Count);
-        for (var i = 0; i < s_tools.Count; i++)
+        return SuccessResponse(request.Id, BuildToolsListResult());
+    }
+
+    private static JsonElement BuildToolsListResult()
+    {
+        using var ms = new MemoryStream();
+        using (var w = new Utf8JsonWriter(ms))
         {
-            var tool = s_tools[i];
-            tools.Add(new
+            w.WriteStartObject();
+            w.WriteStartArray("tools");
+            for (var i = 0; i < s_tools.Count; i++)
             {
-                name = tool.Name,
-                description = tool.Description ?? "",
-                inputSchema = s_toolSchemas[i]
-            });
+                var tool = s_tools[i];
+                w.WriteStartObject();
+                w.WriteString("name", tool.Name);
+                w.WriteString("description", tool.Description ?? "");
+                w.WritePropertyName("inputSchema");
+                s_toolSchemas[i].WriteTo(w);
+                w.WriteEndObject();
+            }
+
+            w.WriteEndArray();
+            w.WriteEndObject();
         }
 
-        var result = JsonSerializer.SerializeToDocument(new { tools });
-        return SuccessResponse(request.Id, result.RootElement);
+        return JsonDocument.Parse(ms.ToArray()).RootElement.Clone();
     }
 
     private async Task<JsonRpcResponse> HandleToolsCallAsync(
@@ -116,14 +136,7 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
         try
         {
             var resultJson = await server.DispatchToolCallAsync(toolName, arguments, ct);
-
-            var content = new[]
-            {
-                new { type = "text", text = resultJson }
-            };
-
-            var result = JsonSerializer.SerializeToDocument(new { content });
-            return SuccessResponse(request.Id, result.RootElement);
+            return SuccessResponse(request.Id, BuildToolCallResult(resultJson, false));
         }
         catch (OperationCanceledException)
         {
@@ -135,14 +148,30 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
         }
         catch (Exception ex)
         {
-            var content = new[]
-            {
-                new { type = "text", text = ex.Message }
-            };
-
-            var result = JsonSerializer.SerializeToDocument(new { content, isError = true });
-            return SuccessResponse(request.Id, result.RootElement);
+            // MCP protocol requires tool errors to be returned as isError responses
+            // rather than crashing the server (losing the transport connection).
+            return SuccessResponse(request.Id, BuildToolCallResult(ex.Message, true));
         }
+    }
+
+    private static JsonElement BuildToolCallResult(string text, bool isError)
+    {
+        using var ms = new MemoryStream();
+        using (var w = new Utf8JsonWriter(ms))
+        {
+            w.WriteStartObject();
+            w.WriteStartArray("content");
+            w.WriteStartObject();
+            w.WriteString("type", "text");
+            w.WriteString("text", text);
+            w.WriteEndObject();
+            w.WriteEndArray();
+            if (isError)
+                w.WriteBoolean("isError", true);
+            w.WriteEndObject();
+        }
+
+        return JsonDocument.Parse(ms.ToArray()).RootElement.Clone();
     }
 
     private static JsonRpcResponse HandlePing(JsonRpcRequest request)

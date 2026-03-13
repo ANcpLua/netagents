@@ -1,6 +1,6 @@
-using Qyl.Agents.Generator.Models;
-
 namespace Qyl.Agents.Generator.Generation;
+
+using Models;
 
 internal static class OutputGenerator
 {

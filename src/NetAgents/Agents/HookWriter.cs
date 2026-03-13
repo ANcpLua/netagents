@@ -1,8 +1,8 @@
+namespace NetAgents.Agents;
+
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using NetAgents.Config;
-
-namespace NetAgents.Agents;
+using Config;
 
 public sealed record HookResolvedTarget(string FilePath, bool Shared);
 
@@ -12,11 +12,17 @@ public sealed record HookWriteWarning(string Agent, string Message);
 
 public static class HookWriter
 {
-    public static IReadOnlyList<HookDeclaration> ToHookDeclarations(IReadOnlyList<HookConfig> configs) =>
-        configs.Select(h => new HookDeclaration(h.Event, h.Matcher, h.Command)).ToList();
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    public static HookTargetResolver ProjectResolver(string projectRoot) =>
-        (_, spec) => new HookResolvedTarget(Path.Combine(projectRoot, spec.FilePath), spec.Shared);
+    public static IReadOnlyList<HookDeclaration> ToHookDeclarations(IReadOnlyList<HookConfig> configs)
+    {
+        return configs.Select(h => new HookDeclaration(h.Event, h.Matcher, h.Command)).ToList();
+    }
+
+    public static HookTargetResolver ProjectResolver(string projectRoot)
+    {
+        return (_, spec) => new HookResolvedTarget(Path.Combine(projectRoot, spec.FilePath), spec.Shared);
+    }
 
     public static async Task<IReadOnlyList<HookWriteWarning>> WriteHookConfigsAsync(
         IReadOnlyList<string> agentIds,
@@ -101,19 +107,19 @@ public static class HookWriter
 
     // ── Internal helpers ─────────────────────────────────────────────────────
 
-    private static async Task FreshWriteAsync(string filePath, HookConfigSpec spec, JsonNode serialized, CancellationToken ct)
+    private static async Task FreshWriteAsync(string filePath, HookConfigSpec spec, JsonNode serialized,
+        CancellationToken ct)
     {
         var doc = new JsonObject();
         if (spec.ExtraFields is not null)
-        {
             foreach (var (key, value) in spec.ExtraFields)
                 doc[key] = value.DeepClone();
-        }
         doc[spec.RootKey] = serialized;
         await WriteJsonAsync(filePath, doc, ct).ConfigureAwait(false);
     }
 
-    private static async Task MergeWriteAsync(string filePath, HookConfigSpec spec, JsonNode serialized, CancellationToken ct)
+    private static async Task MergeWriteAsync(string filePath, HookConfigSpec spec, JsonNode serialized,
+        CancellationToken ct)
     {
         var existing = File.Exists(filePath)
             ? await ReadExistingAsync(filePath, ct).ConfigureAwait(false)
@@ -128,8 +134,8 @@ public static class HookWriter
         return JsonNode.Parse(raw)?.AsObject() ?? new JsonObject();
     }
 
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-
-    private static async Task WriteJsonAsync(string filePath, JsonObject doc, CancellationToken ct) =>
+    private static async Task WriteJsonAsync(string filePath, JsonObject doc, CancellationToken ct)
+    {
         await File.WriteAllTextAsync(filePath, doc.ToJsonString(JsonOptions) + "\n", ct).ConfigureAwait(false);
+    }
 }

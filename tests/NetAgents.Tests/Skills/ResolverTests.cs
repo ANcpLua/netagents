@@ -1,8 +1,8 @@
+namespace NetAgents.Tests.Skills;
+
 using NetAgents.Config;
 using NetAgents.Skills;
 using Xunit;
-
-namespace NetAgents.Tests.Skills;
 
 public class ApplyDefaultRepositorySourceTests
 {
@@ -29,7 +29,7 @@ public class ApplyDefaultRepositorySourceTests
     {
         Assert.Equal(
             "https://gitlab.com/group/repo",
-            SkillResolver.ApplyDefaultRepositorySource("https://gitlab.com/group/repo", RepositorySource.Github));
+            SkillResolver.ApplyDefaultRepositorySource("https://gitlab.com/group/repo"));
         await Task.CompletedTask;
     }
 }
@@ -309,7 +309,8 @@ public class NormalizeSourceTests
     public async Task ReturnsNonGithubSourcesUnchanged()
     {
         Assert.Equal("path:../my-skill", SkillResolver.NormalizeSource("path:../my-skill"));
-        Assert.Equal("git:https://example.com/repo.git", SkillResolver.NormalizeSource("git:https://example.com/repo.git"));
+        Assert.Equal("git:https://example.com/repo.git",
+            SkillResolver.NormalizeSource("git:https://example.com/repo.git"));
         await Task.CompletedTask;
     }
 }

@@ -1,20 +1,22 @@
+namespace NetAgents.Tests.Agents;
+
 using System.Text.Json.Nodes;
 using NetAgents.Agents;
 using NetAgents.Config;
 using Xunit;
 
-namespace NetAgents.Tests.Agents;
-
 public class HookWriterTests : IAsyncLifetime
 {
-    private string _dir = null!;
-    private CancellationToken Ct => TestContext.Current.CancellationToken;
-
     private static readonly HookDeclaration[] Hooks =
     [
         new(HookEvent.PreToolUse, "Bash", ".agents/hooks/block-rm.sh"),
-        new(HookEvent.Stop, null, ".agents/hooks/check-tests.sh"),
+        new(HookEvent.Stop, null, ".agents/hooks/check-tests.sh")
     ];
+
+    private string _dir = null!;
+    private CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private HookTargetResolver Resolver => HookWriter.ProjectResolver(_dir);
 
     public async ValueTask InitializeAsync()
     {
@@ -25,11 +27,9 @@ public class HookWriterTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_dir)) Directory.Delete(_dir, recursive: true);
+        if (Directory.Exists(_dir)) Directory.Delete(_dir, true);
         await ValueTask.CompletedTask;
     }
-
-    private HookTargetResolver Resolver => HookWriter.ProjectResolver(_dir);
 
     private async Task<JsonObject> ReadJson(params string[] parts)
     {
@@ -45,7 +45,7 @@ public class HookWriterTests : IAsyncLifetime
         HookConfig[] configs =
         [
             new(HookEvent.PreToolUse, "Bash", ".agents/hooks/block-rm.sh"),
-            new(HookEvent.Stop, null, ".agents/hooks/check-tests.sh"),
+            new(HookEvent.Stop, null, ".agents/hooks/check-tests.sh")
         ];
         var decls = HookWriter.ToHookDeclarations(configs);
         Assert.Equal(2, decls.Count);
@@ -97,10 +97,8 @@ public class HookWriterTests : IAsyncLifetime
 
         var doc = await ReadJson(".cursor", "hooks.json");
         foreach (var prop in doc["hooks"]!.AsObject())
-        {
-            foreach (var entry in prop.Value!.AsArray())
-                Assert.Null(entry!.AsObject()["matcher"]);
-        }
+        foreach (var entry in prop.Value!.AsArray())
+            Assert.Null(entry!.AsObject()["matcher"]);
     }
 
     [Fact]

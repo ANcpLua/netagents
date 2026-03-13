@@ -1,7 +1,8 @@
-using System.Text.RegularExpressions;
-using NetAgents.Config;
-
 namespace NetAgents.Cli.Commands;
+
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using Config;
 
 public sealed class McpException(string message) : Exception(message);
 
@@ -27,15 +28,6 @@ public static partial class McpCommand
         return (raw[..idx], raw[(idx + 1)..]);
     }
 
-    public sealed record McpAddOptions(
-        ScopeRoot Scope,
-        string Name,
-        string? Command = null,
-        IReadOnlyList<string>? Args = null,
-        string? Url = null,
-        IReadOnlyList<string>? Headers = null,
-        IReadOnlyList<string>? Env = null);
-
     public static async Task RunMcpAddAsync(McpAddOptions opts, CancellationToken ct = default)
     {
         ValidateMcpName(opts.Name);
@@ -58,6 +50,7 @@ public static partial class McpCommand
                 var (key, value) = ParseHeader(h);
                 dict[key] = value;
             }
+
             headers = dict;
         }
 
@@ -66,8 +59,6 @@ public static partial class McpCommand
         await ConfigWriter.AddMcpToConfigAsync(opts.Scope.ConfigPath, entry, ct).ConfigureAwait(false);
         await InstallCommand.RunInstallAsync(new InstallOptions(opts.Scope), ct).ConfigureAwait(false);
     }
-
-    public sealed record McpRemoveOptions(ScopeRoot Scope, string Name);
 
     public static async Task RunMcpRemoveAsync(McpRemoveOptions opts, CancellationToken ct = default)
     {
@@ -79,14 +70,14 @@ public static partial class McpCommand
         await InstallCommand.RunInstallAsync(new InstallOptions(opts.Scope), ct).ConfigureAwait(false);
     }
 
-    public sealed record McpListEntry(string Name, string Transport, string Target, IReadOnlyList<string> Env);
-
-    public static IReadOnlyList<McpListEntry> GetMcpList(AgentsConfig config) =>
-        config.Mcp.Select(m => new McpListEntry(
+    public static IReadOnlyList<McpListEntry> GetMcpList(AgentsConfig config)
+    {
+        return config.Mcp.Select(m => new McpListEntry(
             m.Name,
             m.Command is not null ? "stdio" : "http",
             (m.Command ?? m.Url)!,
             m.Env)).ToList();
+    }
 
     public static async Task<int> ExecuteAsync(string[] args, bool isUser, CancellationToken ct = default)
     {
@@ -119,10 +110,13 @@ public static partial class McpCommand
                 "add" => await McpAddCliAsync(subArgs, scope, ct).ConfigureAwait(false),
                 "remove" => await McpRemoveCliAsync(subArgs, scope, ct).ConfigureAwait(false),
                 "list" => await McpListCliAsync(subArgs, scope, ct).ConfigureAwait(false),
-                _ => UnknownSubcommand(sub),
+                _ => UnknownSubcommand(sub)
             };
         }
-        catch (McpCancelledException) { return 0; }
+        catch (McpCancelledException)
+        {
+            return 0;
+        }
         catch (Exception ex) when (ex is ScopeException or McpException)
         {
             Console.Error.WriteLine(ex.Message);
@@ -137,7 +131,6 @@ public static partial class McpCommand
         var envVars = new List<string>();
 
         for (var i = 0; i < args.Length; i++)
-        {
             switch (args[i])
             {
                 case "--command" when i + 1 < args.Length: command = args[++i]; break;
@@ -148,7 +141,6 @@ public static partial class McpCommand
                     if (!args[i].StartsWith('-')) name ??= args[i];
                     break;
             }
-        }
 
         if (name is null)
         {
@@ -199,7 +191,7 @@ public static partial class McpCommand
 
         if (json)
         {
-            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(entries,
+            Console.WriteLine(JsonSerializer.Serialize(entries,
                 NetAgentsJsonContext.Default.IReadOnlyListMcpListEntry));
             return 0;
         }
@@ -214,15 +206,17 @@ public static partial class McpCommand
         return 0;
     }
 
-    private static void PrintMcpUsage() =>
+    private static void PrintMcpUsage()
+    {
         Console.Error.WriteLine("""
-            Usage: netagents mcp <subcommand>
+                                Usage: netagents mcp <subcommand>
 
-            Subcommands:
-              add      Add an MCP server declaration
-              remove   Remove an MCP server declaration
-              list     Show declared MCP servers
-            """);
+                                Subcommands:
+                                  add      Add an MCP server declaration
+                                  remove   Remove an MCP server declaration
+                                  list     Show declared MCP servers
+                                """);
+    }
 
     private static int UnknownSubcommand(string sub)
     {
@@ -230,4 +224,17 @@ public static partial class McpCommand
         PrintMcpUsage();
         return 1;
     }
+
+    public sealed record McpAddOptions(
+        ScopeRoot Scope,
+        string Name,
+        string? Command = null,
+        IReadOnlyList<string>? Args = null,
+        string? Url = null,
+        IReadOnlyList<string>? Headers = null,
+        IReadOnlyList<string>? Env = null);
+
+    public sealed record McpRemoveOptions(ScopeRoot Scope, string Name);
+
+    public sealed record McpListEntry(string Name, string Transport, string Target, IReadOnlyList<string> Env);
 }

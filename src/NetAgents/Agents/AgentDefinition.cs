@@ -1,13 +1,13 @@
-using System.Text.Json.Nodes;
-using NetAgents.Config;
-
 namespace NetAgents.Agents;
+
+using System.Text.Json.Nodes;
+using Config;
 
 // ── MCP types ────────────────────────────────────────────────────────────────
 
 /// <summary>
-/// Universal MCP server declaration from agents.toml [[mcp]] sections.
-/// Represents either a stdio or HTTP server.
+///     Universal MCP server declaration from agents.toml [[mcp]] sections.
+///     Represents either a stdio or HTTP server.
 /// </summary>
 public sealed record McpDeclaration(
     string Name,
@@ -18,7 +18,7 @@ public sealed record McpDeclaration(
     IReadOnlyList<string>? Env = null);
 
 /// <summary>
-/// Describes how an agent writes its MCP config file.
+///     Describes how an agent writes its MCP config file.
 /// </summary>
 public sealed record McpConfigSpec(
     string FilePath,
@@ -27,7 +27,7 @@ public sealed record McpConfigSpec(
     bool Shared);
 
 /// <summary>
-/// Describes how an agent writes its hook config file.
+///     Describes how an agent writes its hook config file.
 /// </summary>
 public sealed record HookConfigSpec(
     string FilePath,
@@ -35,33 +35,37 @@ public sealed record HookConfigSpec(
     bool Shared,
     IReadOnlyDictionary<string, JsonNode>? ExtraFields = null);
 
-public enum ConfigFormat { Json, Toml }
+public enum ConfigFormat
+{
+    Json,
+    Toml
+}
 
 // ── Hook types ───────────────────────────────────────────────────────────────
 
 /// <summary>
-/// Universal hook declaration from agents.toml [[hooks]] sections.
+///     Universal hook declaration from agents.toml [[hooks]] sections.
 /// </summary>
 public sealed record HookDeclaration(HookEvent Event, string? Matcher, string Command);
 
 // ── Serializer delegates ─────────────────────────────────────────────────────
 
 /// <summary>
-/// Transforms a universal McpDeclaration into the agent-specific shape
-/// for its config file. Returns (serverName, serverConfig).
+///     Transforms a universal McpDeclaration into the agent-specific shape
+///     for its config file. Returns (serverName, serverConfig).
 /// </summary>
 public delegate (string Name, JsonNode Config) McpSerializer(McpDeclaration server);
 
 /// <summary>
-/// Transforms universal HookDeclarations into the agent-specific shape.
-/// Returns the full value for the rootKey.
+///     Transforms universal HookDeclarations into the agent-specific shape.
+///     Returns the full value for the rootKey.
 /// </summary>
 public delegate JsonNode HookSerializer(IReadOnlyList<HookDeclaration> hooks);
 
 // ── Agent definition ─────────────────────────────────────────────────────────
 
 /// <summary>
-/// Definition of an agent tool that netagents manages.
+///     Definition of an agent tool that netagents manages.
 /// </summary>
 public sealed record AgentDefinition(
     string Id,

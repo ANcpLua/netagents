@@ -1,21 +1,23 @@
+namespace NetAgents.Tests.Agents;
+
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NetAgents.Agents;
 using Xunit;
 
-namespace NetAgents.Tests.Agents;
-
 public class McpWriterTests : IAsyncLifetime
 {
-    private string _dir = null!;
-    private CancellationToken Ct => TestContext.Current.CancellationToken;
-
     private static readonly McpDeclaration Stdio = new(
-        "github", Command: "npx", Args: ["-y", "@mcp/server-github"], Env: ["GITHUB_TOKEN"]);
+        "github", "npx", ["-y", "@mcp/server-github"], Env: ["GITHUB_TOKEN"]);
 
     private static readonly McpDeclaration Http = new(
         "remote", Url: "https://mcp.example.com/sse",
         Headers: new Dictionary<string, string> { ["Authorization"] = "Bearer tok" });
+
+    private string _dir = null!;
+    private CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private McpTargetResolver Resolver => McpWriter.ProjectResolver(_dir);
 
     public async ValueTask InitializeAsync()
     {
@@ -26,11 +28,9 @@ public class McpWriterTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_dir)) Directory.Delete(_dir, recursive: true);
+        if (Directory.Exists(_dir)) Directory.Delete(_dir, true);
         await ValueTask.CompletedTask;
     }
-
-    private McpTargetResolver Resolver => McpWriter.ProjectResolver(_dir);
 
     private async Task<JsonObject> ReadJson(params string[] parts)
     {
@@ -166,8 +166,13 @@ public class McpWriterTests : IAsyncLifetime
     [Fact]
     public async Task PreservesUserServersInSharedConfig()
     {
-        var existing = new JsonObject { ["mcp"] = new JsonObject { ["my-custom-server"] = new JsonObject { ["type"] = "local", ["command"] = new JsonArray("my-tool") } } };
-        await File.WriteAllTextAsync(Path.Combine(_dir, "opencode.json"), JsonSerializer.Serialize(existing, new JsonSerializerOptions { WriteIndented = true }), Ct);
+        var existing = new JsonObject
+        {
+            ["mcp"] = new JsonObject
+                { ["my-custom-server"] = new JsonObject { ["type"] = "local", ["command"] = new JsonArray("my-tool") } }
+        };
+        await File.WriteAllTextAsync(Path.Combine(_dir, "opencode.json"),
+            JsonSerializer.Serialize(existing, new JsonSerializerOptions { WriteIndented = true }), Ct);
 
         await McpWriter.WriteMcpConfigsAsync(["opencode"], [Stdio], Resolver, Ct);
 
