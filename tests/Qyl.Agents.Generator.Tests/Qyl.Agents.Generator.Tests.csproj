@@ -1,18 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <IsPackable>false</IsPackable>
-        <IsTestProject>true</IsTestProject>
-        <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
-    </PropertyGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="xunit.v3"/>
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3.mtp-v2"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\..\..\ANcpLua.Roslyn.Utilities\src\ANcpLua.Roslyn.Utilities.Testing\ANcpLua.Roslyn.Utilities.Testing.csproj"/>
-        <ProjectReference Include="..\..\src\Qyl.Agents.Generator\Qyl.Agents.Generator.csproj"/>
-        <ProjectReference Include="..\..\src\Qyl.Agents.Abstractions\Qyl.Agents.Abstractions.csproj"/>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\ANcpLua.Roslyn.Utilities\src\ANcpLua.Roslyn.Utilities.Testing\ANcpLua.Roslyn.Utilities.Testing.csproj"/>
+    <ProjectReference Include="..\..\src\Qyl.Agents.Generator\Qyl.Agents.Generator.csproj"/>
+    <ProjectReference Include="..\..\src\Qyl.Agents.Abstractions\Qyl.Agents.Abstractions.csproj"/>
+  </ItemGroup>
 </Project>
