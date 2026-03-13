@@ -4,7 +4,7 @@ using System.ComponentModel;
 
 /// <summary>A calculator MCP server for end-to-end testing.</summary>
 [McpServer]
-public class CalcServer
+public partial class CalcServer
 {
     public int CallCount { get; private set; }
 
