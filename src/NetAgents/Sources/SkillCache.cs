@@ -1,5 +1,8 @@
 namespace NetAgents.Sources;
 
+using System.Security.Cryptography;
+using System.Text;
+
 public sealed record CacheResult(string RepoDir, string Commit);
 
 public static class SkillCache
@@ -22,9 +25,7 @@ public static class SkillCache
     {
         var stateDir = Environment.GetEnvironmentVariable("NETAGENTS_STATE_DIR") ?? DefaultStateDir;
         var effectiveTtl = ttl ?? DefaultTtl;
-        // Ensure cacheKey is relative so Path.Combine doesn't discard the stateDir
-        var safeCacheKey = cacheKey.TrimStart(Path.DirectorySeparatorChar).TrimStart(Path.AltDirectorySeparatorChar);
-        var repoDir = Path.Combine(stateDir, safeCacheKey);
+        var repoDir = Path.Combine(stateDir, GetCacheDirectoryName(cacheKey));
 
         if (GitSource.IsGitRepo(repoDir))
         {
@@ -66,5 +67,21 @@ public static class SkillCache
             // No FETCH_HEAD yet — consider stale
             return true;
         }
+    }
+
+    private static string GetCacheDirectoryName(string cacheKey)
+    {
+        var normalized = cacheKey.Replace('\\', '/').Trim().Trim('/');
+        var readable = normalized.Length == 0
+            ? "repo"
+            : new string(normalized.Select(ch => char.IsLetterOrDigit(ch) ? ch : '-').ToArray()).Trim('-');
+
+        if (readable.Length == 0)
+            readable = "repo";
+        if (readable.Length > 48)
+            readable = readable[..48].Trim('-');
+
+        var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(cacheKey)));
+        return $"{readable}-{hash[..12]}";
     }
 }

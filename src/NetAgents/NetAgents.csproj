@@ -5,6 +5,8 @@
     <ToolCommandName>netagents</ToolCommandName>
     <PublishAot Condition="'$(Configuration)' == 'Release'">true</PublishAot>
     <RootNamespace>NetAgents</RootNamespace>
+    <Description>Dotnet tool for bootstrapping, installing, syncing, and trusting .agents skill repositories.</Description>
+    <PackageTags>netagents;agents;mcp;skills;dotnet-tool</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

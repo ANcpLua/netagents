@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using NetAgents.Tests;
 using NetAgents.Cli.Commands;
 using Utils;
 using Xunit;
@@ -16,7 +17,7 @@ file sealed class TempDir : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(Path)) Directory.Delete(Path, true);
+        TestWorkspace.DeleteDirectory(Path);
     }
 }
 
@@ -49,7 +50,7 @@ public sealed class AddCommandTests
 
         await ProcessRunner.RunAsync("git", ["add", "."], repoDir, ct: ct);
         await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], repoDir, ct: ct);
-        return repoDir;
+        return TestWorkspace.ToGitSource(repoDir);
     }
 
     [Fact]
@@ -62,7 +63,7 @@ public sealed class AddCommandTests
         try
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
-            var result = await AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}", Names: ["pdf"]), CT);
+            var result = await AddCommand.RunAddAsync(new AddOptions(scope, repoDir, Names: ["pdf"]), CT);
 
             Assert.Equal("pdf", result.SingleName);
             var toml = await File.ReadAllTextAsync(Path.Combine(project, "agents.toml"), CT);
@@ -85,7 +86,7 @@ public sealed class AddCommandTests
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             var result = await AddCommand.RunAddAsync(
-                new AddOptions(scope, $"git:{repoDir}", Names: ["pdf", "review"]), CT);
+                new AddOptions(scope, repoDir, Names: ["pdf", "review"]), CT);
 
             Assert.NotNull(result.MultipleNames);
             Assert.Contains("pdf", result.MultipleNames);
@@ -108,7 +109,7 @@ public sealed class AddCommandTests
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             await Assert.ThrowsAsync<AddException>(() =>
-                AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}", Names: ["nonexistent"]), CT));
+                AddCommand.RunAddAsync(new AddOptions(scope, repoDir, Names: ["nonexistent"]), CT));
         }
         finally
         {
@@ -124,13 +125,13 @@ public sealed class AddCommandTests
         Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
         var repoDir = await CreateRepo(tmp.Path, CT, "pdf");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"{repoDir}\"\n");
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             var ex = await Assert.ThrowsAsync<AddException>(() =>
-                AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}", Names: ["pdf"]), CT));
+                AddCommand.RunAddAsync(new AddOptions(scope, repoDir, Names: ["pdf"]), CT));
             Assert.Contains("already exists", ex.Message);
         }
         finally
@@ -150,7 +151,7 @@ public sealed class AddCommandTests
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             await Assert.ThrowsAsync<AddException>(() =>
-                AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}", Names: ["pdf"], All: true), CT));
+                AddCommand.RunAddAsync(new AddOptions(scope, repoDir, Names: ["pdf"], All: true), CT));
         }
         finally
         {
@@ -177,7 +178,7 @@ public sealed class AddCommandTests
         try
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
-            var result = await AddCommand.RunAddAsync(new AddOptions(scope, $"git:{singleRepo}"), CT);
+            var result = await AddCommand.RunAddAsync(new AddOptions(scope, TestWorkspace.ToGitSource(singleRepo)), CT);
 
             Assert.Equal("only-skill", result.SingleName);
         }
@@ -198,7 +199,7 @@ public sealed class AddCommandTests
         {
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             var ex = await Assert.ThrowsAsync<AddException>(() =>
-                AddCommand.RunAddAsync(new AddOptions(scope, $"git:{repoDir}"), CT));
+                AddCommand.RunAddAsync(new AddOptions(scope, repoDir), CT));
             Assert.Contains("Multiple skills found", ex.Message);
         }
         finally

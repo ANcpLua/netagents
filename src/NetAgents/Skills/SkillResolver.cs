@@ -100,6 +100,18 @@ public static partial class SkillResolver
         return $"https://{host}/{owner}/{repo}{refSuffix}";
     }
 
+    public static string NormalizeGitSourceForStorage(string specifier)
+    {
+        if (!specifier.StartsWith("git:", StringComparison.Ordinal))
+            return specifier;
+
+        var raw = specifier[4..];
+        if (!Path.IsPathRooted(raw))
+            return specifier;
+
+        return $"git:{new Uri(Path.GetFullPath(raw)).AbsoluteUri}";
+    }
+
     /// <summary>
     ///     Parse a source string into its components.
     /// </summary>

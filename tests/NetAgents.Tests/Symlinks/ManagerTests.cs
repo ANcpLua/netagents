@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Symlinks;
 
+using NetAgents.Tests;
 using NetAgents.Symlinks;
 using Utils;
 using Xunit;
@@ -19,8 +20,7 @@ public class EnsureSkillsSymlinkTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_dir))
-            Directory.Delete(_dir, true);
+        TestWorkspace.DeleteDirectory(_dir);
         await ValueTask.CompletedTask;
     }
 
@@ -167,8 +167,7 @@ public class VerifySymlinksTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_dir))
-            Directory.Delete(_dir, true);
+        TestWorkspace.DeleteDirectory(_dir);
         await ValueTask.CompletedTask;
     }
 

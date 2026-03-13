@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Mcp;
 
+using NetAgents.Tests;
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
 using NetAgents.Mcp;
@@ -18,10 +19,7 @@ file sealed class TempDir : IDisposable
 
     public void Dispose()
     {
-        if (!Directory.Exists(Path)) return;
-        foreach (var info in new DirectoryInfo(Path).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
-            info.Attributes = FileAttributes.Normal;
-        Directory.Delete(Path, true);
+        TestWorkspace.DeleteDirectory(Path);
     }
 }
 
@@ -52,7 +50,7 @@ public sealed class ServerTests
         Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
         var repoDir = await CreateRepo(tmp.Path, CT, "pdf");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"{repoDir}\"\n");
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
@@ -86,7 +84,7 @@ public sealed class ServerTests
         Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
         var repoDir = await CreateRepo(tmp.Path, CT, "pdf");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"{repoDir}\"\n");
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
@@ -123,7 +121,7 @@ public sealed class ServerTests
         try
         {
             var server = new NetAgentsMcpServer();
-            var result = await server.AddAsync(project, $"git:{repoDir}", CT);
+            var result = await server.AddAsync(project, repoDir, CT);
 
             Assert.Contains("Added skill: pdf", result);
         }
@@ -153,7 +151,7 @@ public sealed class ServerTests
         Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
         var repoDir = await CreateRepo(tmp.Path, CT, "pdf");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"{repoDir}\"\n");
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
@@ -191,7 +189,7 @@ public sealed class ServerTests
         Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
         var repoDir = await CreateRepo(tmp.Path, CT, "pdf");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"git:{repoDir}\"\n");
+            $"version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"{repoDir}\"\n");
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
@@ -218,7 +216,7 @@ public sealed class ServerTests
         Directory.CreateDirectory(Path.Combine(project, ".agents", "skills"));
         var repoDir = await CreateRepo(tmp.Path, CT, "pdf");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"{repoDir}\"\n");
 
         var server = new NetAgentsMcpServer();
         var result = await server.SyncAsync(project, CT);
@@ -257,6 +255,6 @@ public sealed class ServerTests
 
         await ProcessRunner.RunAsync("git", ["add", "."], repoDir, ct: ct);
         await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], repoDir, ct: ct);
-        return repoDir;
+        return TestWorkspace.ToGitSource(repoDir);
     }
 }

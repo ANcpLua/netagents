@@ -67,6 +67,7 @@ public static class AddCommand
         var sourceForStorage = parsed.Ref is not null
             ? specifier[..^(parsed.Ref.Length + 1)]
             : specifier;
+        sourceForStorage = SkillResolver.NormalizeGitSourceForStorage(sourceForStorage);
 
         TrustValidator.ValidateTrustedSource(hintedSpecifier, config.Trust);
 

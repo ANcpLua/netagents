@@ -49,6 +49,9 @@ public static partial class TrustValidator
         if (parsed.Type == SourceType.Local)
             return;
 
+        if (parsed.Type == SourceType.Git && parsed.Url is not null && IsLocalGitUrl(parsed.Url))
+            return;
+
         if (parsed.Type == SourceType.Github)
         {
             var owner = parsed.Owner!.ToLowerInvariant();
@@ -125,6 +128,12 @@ public static partial class TrustValidator
             return new ParsedSource(SourceType.Github, parts[0], parts[1], null);
 
         return new ParsedSource(SourceType.Git, null, null, source);
+    }
+
+    private static bool IsLocalGitUrl(string url)
+    {
+        return Path.IsPathRooted(url) ||
+               Uri.TryCreate(url, UriKind.Absolute, out var parsed) && parsed.IsFile;
     }
 
     // ── Source parsing (mirrors dotagents parseSource for trust checks) ───────

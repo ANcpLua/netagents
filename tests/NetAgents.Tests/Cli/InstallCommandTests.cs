@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using NetAgents.Tests;
 using NetAgents.Cli.Commands;
 using NetAgents.Lockfile;
 using Utils;
@@ -17,10 +18,7 @@ file sealed class TempDir : IDisposable
 
     public void Dispose()
     {
-        if (!Directory.Exists(Path)) return;
-        foreach (var info in new DirectoryInfo(Path).EnumerateFileSystemInfos("*", SearchOption.AllDirectories))
-            info.Attributes = FileAttributes.Normal;
-        Directory.Delete(Path, true);
+        TestWorkspace.DeleteDirectory(Path);
     }
 }
 
@@ -46,7 +44,7 @@ file static class GitHelper
 
         await ProcessRunner.RunAsync("git", ["add", "."], repoDir, ct: ct);
         await ProcessRunner.RunAsync("git", ["commit", "-m", "initial"], repoDir, ct: ct);
-        return repoDir;
+        return TestWorkspace.ToGitSource(repoDir);
     }
 }
 
@@ -69,7 +67,7 @@ public sealed class InstallCommandTests
         SetupProject(project);
         var repoDir = await GitHelper.CreateRepoWithSkills(tmp.Path, CT, "pdf");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"{repoDir}\"\n");
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
@@ -93,7 +91,7 @@ public sealed class InstallCommandTests
         SetupProject(project);
         var repoDir = await GitHelper.CreateRepoWithSkills(tmp.Path, CT, "pdf");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"{repoDir}\"\n");
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
@@ -132,7 +130,7 @@ public sealed class InstallCommandTests
         SetupProject(project);
         var repoDir = await GitHelper.CreateRepoWithSkills(tmp.Path, CT, "pdf");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"{repoDir}\"\n");
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
@@ -154,7 +152,7 @@ public sealed class InstallCommandTests
         SetupProject(project);
         var repoDir = await GitHelper.CreateRepoWithSkills(tmp.Path, CT, "pdf");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"git:{repoDir}\"\n");
+            $"version = 1\n\n[[skills]]\nname = \"pdf\"\nsource = \"{repoDir}\"\n");
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
@@ -199,7 +197,7 @@ public sealed class InstallCommandTests
         SetupProject(project);
         var repoDir = await GitHelper.CreateRepoWithSkills(tmp.Path, CT, "pdf", "skills/review");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"git:{repoDir}\"\n");
+            $"version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"{repoDir}\"\n");
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
@@ -223,7 +221,7 @@ public sealed class InstallCommandTests
         SetupProject(project);
         var repoDir = await GitHelper.CreateRepoWithSkills(tmp.Path, CT, "pdf", "skills/review");
         File.WriteAllText(Path.Combine(project, "agents.toml"),
-            $"version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"git:{repoDir}\"\nexclude = [\"review\"]\n");
+            $"version = 1\n\n[[skills]]\nname = \"*\"\nsource = \"{repoDir}\"\nexclude = [\"review\"]\n");
         Environment.SetEnvironmentVariable("NETAGENTS_STATE_DIR", Path.Combine(tmp.Path, "state"));
         try
         {
