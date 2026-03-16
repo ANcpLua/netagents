@@ -10,4 +10,9 @@
         <Project Path="tests/Qyl.Agents.Generator.Tests/Qyl.Agents.Generator.Tests.csproj"/>
         <Project Path="tests/Qyl.Agents.Tests/Qyl.Agents.Tests.csproj"/>
     </Folder>
+    <Folder Name="/.github/">
+        <File Path=".github/dependabot.yml"/>
+        <File Path=".github/workflows/auto-merge.yml"/>
+        <File Path=".github/workflows/nuget-publish.yml"/>
+    </Folder>
 </Solution>
