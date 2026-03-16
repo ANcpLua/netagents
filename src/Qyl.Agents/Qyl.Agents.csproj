@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Qyl.Agents.Tests"/>
-    <InternalsVisibleTo Include="Qyl.Agents.Http"/>
   </ItemGroup>
 
   <ItemGroup>
