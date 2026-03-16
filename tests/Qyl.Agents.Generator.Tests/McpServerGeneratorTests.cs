@@ -592,4 +592,265 @@ public sealed class McpServerGeneratorTests : IDisposable
             })
             .Compiles();
     }
+
+    [Fact]
+    public async Task SafetyAnnotationsEmittedInGeneratedCode()
+    {
+        var source = """
+                     using Qyl.Agents;
+                     using System.ComponentModel;
+
+                     namespace SafetyTest;
+
+                     /// <summary>A calc server</summary>
+                     [McpServer]
+                     public partial class CalcServer
+                     {
+                         /// <summary>Adds two numbers</summary>
+                         [Tool(ReadOnly = ToolHint.True, Idempotent = ToolHint.True)]
+                         public int Add([Description("First")] int a, [Description("Second")] int b) => a + b;
+                     }
+                     """;
+
+        using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
+        result
+            .File("SafetyTest.CalcServer.McpServer.g.cs", content =>
+            {
+                Assert.Contains("ReadOnlyHint = true", content);
+                Assert.Contains("IdempotentHint = true", content);
+                Assert.DoesNotContain("DestructiveHint", content);
+                Assert.DoesNotContain("OpenWorldHint", content);
+            })
+            .Compiles();
+    }
+
+    [Fact]
+    public async Task MissingSafetyAnnotationsReportsQA0012()
+    {
+        var source = """
+                     using Qyl.Agents;
+
+                     /// <summary>Test</summary>
+                     [McpServer]
+                     public partial class NoHintServer
+                     {
+                         /// <summary>A tool</summary>
+                         [Tool]
+                         public string Echo(string input) => input;
+                     }
+                     """;
+
+        using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
+        result
+            .HasDiagnostic("QA0012", DiagnosticSeverity.Warning)
+            .Compiles();
+    }
+
+    [Fact]
+    public async Task ResourceMethodGeneratesDispatchAndMetadata()
+    {
+        var source = """
+                     using Qyl.Agents;
+                     using System.ComponentModel;
+                     using System.Threading;
+                     using System.Threading.Tasks;
+
+                     namespace ResTest;
+
+                     /// <summary>A resource server</summary>
+                     [McpServer]
+                     public partial class ResServer
+                     {
+                         /// <summary>Reads config</summary>
+                         [Resource("config://agents.toml", MimeType = "application/toml")]
+                         public Task<string> ReadConfig(CancellationToken ct) => Task.FromResult("key = true");
+
+                         /// <summary>A tool</summary>
+                         [Tool(ReadOnly = ToolHint.True)]
+                         public string Ping([Description("Input")] string input) => input;
+                     }
+                     """;
+
+        using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
+        result
+            .File("ResTest.ResServer.McpServer.g.cs", content =>
+            {
+                Assert.Contains("DispatchResourceReadAsync", content);
+                Assert.Contains("GetResourceInfos", content);
+                Assert.Contains("config://agents.toml", content);
+                Assert.Contains("application/toml", content);
+            })
+            .Compiles();
+    }
+
+    [Fact]
+    public async Task ResourceInvalidReturnTypeReportsQA0013()
+    {
+        var source = """
+                     using Qyl.Agents;
+
+                     /// <summary>Test</summary>
+                     [McpServer]
+                     public partial class BadResServer
+                     {
+                         /// <summary>Bad resource</summary>
+                         [Resource("data://x")]
+                         public int BadResource() => 42;
+
+                         /// <summary>A tool</summary>
+                         [Tool(ReadOnly = ToolHint.True)]
+                         public string Ping(string input) => input;
+                     }
+                     """;
+
+        using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
+        result.HasDiagnostic("QA0013", DiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public async Task DuplicateResourceUriReportsQA0014()
+    {
+        var source = """
+                     using Qyl.Agents;
+
+                     /// <summary>Test</summary>
+                     [McpServer]
+                     public partial class DupeResServer
+                     {
+                         /// <summary>First</summary>
+                         [Resource("config://x")]
+                         public string First() => "a";
+
+                         /// <summary>Second</summary>
+                         [Resource("config://x")]
+                         public string Second() => "b";
+
+                         /// <summary>A tool</summary>
+                         [Tool(ReadOnly = ToolHint.True)]
+                         public string Ping(string input) => input;
+                     }
+                     """;
+
+        using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
+        result.HasDiagnostic("QA0014", DiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public async Task PromptStringReturnGeneratesSingleMessage()
+    {
+        var source = """
+                     using Qyl.Agents;
+                     using System.ComponentModel;
+
+                     namespace PromptTest;
+
+                     /// <summary>A prompt server</summary>
+                     [McpServer]
+                     public partial class PromptServer
+                     {
+                         /// <summary>Diagnose issues</summary>
+                         [Prompt("diagnose")]
+                         public string Diagnose([Description("Error text")] string error) => $"Diagnose: {error}";
+
+                         /// <summary>A tool</summary>
+                         [Tool(ReadOnly = ToolHint.True)]
+                         public string Ping([Description("Input")] string input) => input;
+                     }
+                     """;
+
+        using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
+        result
+            .File("PromptTest.PromptServer.McpServer.g.cs", content =>
+            {
+                Assert.Contains("DispatchPromptAsync", content);
+                Assert.Contains("GetPromptInfos", content);
+                Assert.Contains("diagnose", content);
+            })
+            .Compiles();
+    }
+
+    [Fact]
+    public async Task PromptInvalidReturnTypeReportsQA0015()
+    {
+        var source = """
+                     using Qyl.Agents;
+
+                     /// <summary>Test</summary>
+                     [McpServer]
+                     public partial class BadPromptServer
+                     {
+                         /// <summary>Bad prompt</summary>
+                         [Prompt("bad")]
+                         public int BadPrompt() => 42;
+
+                         /// <summary>A tool</summary>
+                         [Tool(ReadOnly = ToolHint.True)]
+                         public string Ping(string input) => input;
+                     }
+                     """;
+
+        using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
+        result.HasDiagnostic("QA0015", DiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public async Task DuplicatePromptNameReportsQA0016()
+    {
+        var source = """
+                     using Qyl.Agents;
+
+                     /// <summary>Test</summary>
+                     [McpServer]
+                     public partial class DupePromptServer
+                     {
+                         /// <summary>First</summary>
+                         [Prompt("dupe")]
+                         public string First(string a) => a;
+
+                         /// <summary>Second</summary>
+                         [Prompt("dupe")]
+                         public string Second(string b) => b;
+
+                         /// <summary>A tool</summary>
+                         [Tool(ReadOnly = ToolHint.True)]
+                         public string Ping(string input) => input;
+                     }
+                     """;
+
+        using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
+        result.HasDiagnostic("QA0016", DiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public async Task LlmsTxtGeneratedWithToolsSection()
+    {
+        var source = """
+                     using Qyl.Agents;
+                     using System.ComponentModel;
+
+                     namespace LlmsTest;
+
+                     /// <summary>A calc server</summary>
+                     [McpServer]
+                     public partial class CalcServer
+                     {
+                         /// <summary>Adds two numbers</summary>
+                         [Tool(ReadOnly = ToolHint.True)]
+                         public int Add([Description("First")] int a, [Description("Second")] int b) => a + b;
+                     }
+                     """;
+
+        using var result = await Test<McpServerGenerator>.Run(source, TestContext.Current.CancellationToken);
+        result
+            .File("LlmsTest.CalcServer.McpServer.g.cs", content =>
+            {
+                Assert.Contains("LlmsTxt", content);
+                Assert.Contains("s_llmsTxt", content);
+                Assert.Contains("# calc-server", content);
+                Assert.Contains("## Tools", content);
+                Assert.Contains("[add](/mcp)", content);
+                Assert.Contains("read-only", content);
+            })
+            .Compiles();
+    }
 }

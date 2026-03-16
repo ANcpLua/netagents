@@ -6,6 +6,8 @@ internal static class ServerExtractor
 {
     private const string McpServerAttributeName = "Qyl.Agents.McpServerAttribute";
     private const string ToolAttributeName = "Qyl.Agents.ToolAttribute";
+    private const string ResourceAttributeName = "Qyl.Agents.ResourceAttribute";
+    private const string PromptAttributeName = "Qyl.Agents.PromptAttribute";
 
     public static DiagnosticFlow<ServerModel> Extract(
         GeneratorAttributeSyntaxContext context,
@@ -45,15 +47,24 @@ internal static class ServerExtractor
                 ? string.Empty
                 : symbol.ContainingNamespace.ToDisplayString();
 
-            return ExtractTools(symbol, context.SemanticModel.Compilation, cancellationToken)
-                .Select(tools => new ServerModel(
+            var toolsFlow = ExtractTools(symbol, context.SemanticModel.Compilation, cancellationToken);
+            var resourcesFlow = ExtractResources(symbol, context.SemanticModel.Compilation, cancellationToken);
+            var promptsFlow = ExtractPrompts(symbol, context.SemanticModel.Compilation, cancellationToken);
+
+            return DiagnosticFlow.Zip(toolsFlow, resourcesFlow).Then(tuple2 =>
+            {
+                var (tools, resources) = tuple2;
+                return promptsFlow.Select(prompts => new ServerModel(
                     namespaceName,
                     symbol.Name,
                     serverName,
                     description,
                     version,
                     declarations,
-                    tools));
+                    tools,
+                    resources,
+                    prompts));
+            });
         });
     }
 
@@ -96,6 +107,86 @@ internal static class ServerExtractor
             return tools.IsEmpty
                 ? DiagnosticFlow.Ok(default(EquatableArray<ToolModel>))
                 : DiagnosticFlow.Ok(tools.AsEquatableArray());
+        });
+    }
+
+    private static DiagnosticFlow<EquatableArray<ResourceModel>> ExtractResources(
+        INamedTypeSymbol type,
+        Compilation compilation,
+        CancellationToken cancellationToken)
+    {
+        var resourceMethods = type.GetMembers()
+            .OfType<IMethodSymbol>()
+            .Where(m => m.MethodKind == MethodKind.Ordinary && m.HasAttribute(ResourceAttributeName))
+            .ToList();
+
+        if (resourceMethods.Count == 0)
+            return DiagnosticFlow.Ok(default(EquatableArray<ResourceModel>));
+
+        var awaitable = new AwaitableContext(compilation);
+        var resourceFlows = resourceMethods.Select(m =>
+            ResourceExtractor.Extract(m, compilation, awaitable, cancellationToken));
+        var collected = DiagnosticFlow.Collect(resourceFlows);
+
+        return collected.Then(resources =>
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var duplicateDiags = new List<DiagnosticInfo>();
+
+            foreach (var resource in resources)
+                if (!seen.Add(resource.Uri))
+                    duplicateDiags.Add(DiagnosticInfo.Create(
+                        DiagnosticDescriptors.DuplicateResourceUri,
+                        type,
+                        resource.Uri,
+                        type.Name));
+
+            if (duplicateDiags.Count > 0)
+                return DiagnosticFlow.Fail<EquatableArray<ResourceModel>>(duplicateDiags.ToArray());
+
+            return resources.IsEmpty
+                ? DiagnosticFlow.Ok(default(EquatableArray<ResourceModel>))
+                : DiagnosticFlow.Ok(resources.AsEquatableArray());
+        });
+    }
+
+    private static DiagnosticFlow<EquatableArray<PromptModel>> ExtractPrompts(
+        INamedTypeSymbol type,
+        Compilation compilation,
+        CancellationToken cancellationToken)
+    {
+        var promptMethods = type.GetMembers()
+            .OfType<IMethodSymbol>()
+            .Where(m => m.MethodKind == MethodKind.Ordinary && m.HasAttribute(PromptAttributeName))
+            .ToList();
+
+        if (promptMethods.Count == 0)
+            return DiagnosticFlow.Ok(default(EquatableArray<PromptModel>));
+
+        var awaitable = new AwaitableContext(compilation);
+        var promptFlows = promptMethods.Select(m =>
+            PromptExtractor.Extract(m, compilation, awaitable, cancellationToken));
+        var collected = DiagnosticFlow.Collect(promptFlows);
+
+        return collected.Then(prompts =>
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var duplicateDiags = new List<DiagnosticInfo>();
+
+            foreach (var prompt in prompts)
+                if (!seen.Add(prompt.PromptName))
+                    duplicateDiags.Add(DiagnosticInfo.Create(
+                        DiagnosticDescriptors.DuplicatePromptName,
+                        type,
+                        prompt.PromptName,
+                        type.Name));
+
+            if (duplicateDiags.Count > 0)
+                return DiagnosticFlow.Fail<EquatableArray<PromptModel>>(duplicateDiags.ToArray());
+
+            return prompts.IsEmpty
+                ? DiagnosticFlow.Ok(default(EquatableArray<PromptModel>))
+                : DiagnosticFlow.Ok(prompts.AsEquatableArray());
         });
     }
 

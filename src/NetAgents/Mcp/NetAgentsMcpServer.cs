@@ -8,7 +8,8 @@ using Qyl.Agents;
 [McpServer("netagents", Version = "1.2.0")]
 public partial class NetAgentsMcpServer
 {
-    [Tool("list", Description = "List all declared skills and their installation status")]
+    [Tool("list", Description = "List all declared skills and their installation status",
+        ReadOnly = ToolHint.True, Idempotent = ToolHint.True)]
     public async Task<string> ListAsync(
         [Description("Absolute path to the project root directory")]
         string projectRoot,
@@ -19,7 +20,8 @@ public partial class NetAgentsMcpServer
         return FormatJson(result);
     }
 
-    [Tool("install", Description = "Install all skills declared in agents.toml")]
+    [Tool("install", Description = "Install all skills declared in agents.toml",
+        Destructive = ToolHint.False, Idempotent = ToolHint.True)]
     public async Task<string> InstallAsync(
         [Description("Absolute path to the project root directory")]
         string projectRoot,
@@ -30,7 +32,8 @@ public partial class NetAgentsMcpServer
         return FormatInstallResult(result);
     }
 
-    [Tool("add", Description = "Add a skill dependency to agents.toml")]
+    [Tool("add", Description = "Add a skill dependency to agents.toml",
+        Destructive = ToolHint.False, Idempotent = ToolHint.True)]
     public async Task<string> AddAsync(
         [Description("Absolute path to the project root directory")]
         string projectRoot,
@@ -44,7 +47,8 @@ public partial class NetAgentsMcpServer
         return FormatAddResult(result);
     }
 
-    [Tool("remove", Description = "Remove a skill from agents.toml")]
+    [Tool("remove", Description = "Remove a skill from agents.toml",
+        Destructive = ToolHint.True)]
     public async Task<string> RemoveAsync(
         [Description("Absolute path to the project root directory")]
         string projectRoot,
@@ -58,7 +62,8 @@ public partial class NetAgentsMcpServer
         return FormatRemoveResult(result);
     }
 
-    [Tool("sync", Description = "Reconcile installed skills with agents.toml")]
+    [Tool("sync", Description = "Reconcile installed skills with agents.toml",
+        Destructive = ToolHint.False, Idempotent = ToolHint.True)]
     public async Task<string> SyncAsync(
         [Description("Absolute path to the project root directory")]
         string projectRoot,
@@ -69,7 +74,8 @@ public partial class NetAgentsMcpServer
         return FormatSyncResult(result);
     }
 
-    [Tool("doctor", Description = "Run health checks on the agents configuration")]
+    [Tool("doctor", Description = "Run health checks on the agents configuration",
+        Idempotent = ToolHint.False)]
     public async Task<string> DoctorAsync(
         [Description("Absolute path to the project root directory")]
         string projectRoot,

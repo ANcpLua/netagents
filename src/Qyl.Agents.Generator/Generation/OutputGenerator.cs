@@ -34,9 +34,13 @@ internal static class OutputGenerator
         sb.AppendLine();
         SchemaEmitter.Emit(sb, server);
         DispatchEmitter.Emit(sb, server);
+        ResourceEmitter.Emit(sb, server);
+        PromptEmitter.Emit(sb, server);
         MetadataEmitter.Emit(sb, server);
         sb.AppendLine();
         SkillEmitter.Emit(sb, server);
+        sb.AppendLine();
+        LlmsTxtEmitter.Emit(sb, server);
 
         for (var i = 0; i < blocks; i++) sb.EndBlock();
 

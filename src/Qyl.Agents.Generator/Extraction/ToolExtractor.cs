@@ -40,7 +40,12 @@ internal static class ToolExtractor
 
         var hasCancellationToken = HasCancellationToken(method);
 
-        return ParameterExtractor.ExtractParameters(method, cancellationToken)
+        var readOnly = ReadHint(toolAttr, "ReadOnly");
+        var destructive = ReadHint(toolAttr, "Destructive");
+        var idempotent = ReadHint(toolAttr, "Idempotent");
+        var openWorld = ReadHint(toolAttr, "OpenWorld");
+
+        var flow = ParameterExtractor.ExtractParameters(method, cancellationToken)
             .Select(parameters => new ToolModel(
                 method.Name,
                 toolName,
@@ -48,7 +53,20 @@ internal static class ToolExtractor
                 resultTypeFqn,
                 returnKind.Value,
                 hasCancellationToken,
-                parameters));
+                parameters,
+                readOnly,
+                destructive,
+                idempotent,
+                openWorld));
+
+        if (readOnly == ToolHintValue.Unset &&
+            destructive == ToolHintValue.Unset &&
+            idempotent == ToolHintValue.Unset &&
+            openWorld == ToolHintValue.Unset)
+            flow = flow.Warn(DiagnosticInfo.Create(
+                DiagnosticDescriptors.AllHintsUnset, method, method.Name));
+
+        return flow;
     }
 
     private static (ReturnKind? Kind, string ResultFqn) ClassifyReturnType(
@@ -80,6 +98,21 @@ internal static class ToolExtractor
             return (ReturnKind.Sync, ret.GetFullyQualifiedName());
 
         return (null, string.Empty);
+    }
+
+    private static ToolHintValue ReadHint(AttributeData? attr, string name)
+    {
+        if (attr is null || attr.NamedArguments.IsDefaultOrEmpty)
+            return ToolHintValue.Unset;
+
+        foreach (var arg in attr.NamedArguments)
+        {
+            if (string.Equals(arg.Key, name, StringComparison.Ordinal) &&
+                arg.Value.Value is not null)
+                return (ToolHintValue)Convert.ToByte(arg.Value.Value);
+        }
+
+        return ToolHintValue.Unset;
     }
 
     private static bool HasCancellationToken(IMethodSymbol method)

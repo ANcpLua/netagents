@@ -7,6 +7,8 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
 {
     private static readonly McpServerInfo s_info = TServer.GetServerInfo();
     private static readonly IReadOnlyList<McpToolInfo> s_tools = TServer.GetToolInfos();
+    private static readonly IReadOnlyList<McpResourceInfo> s_resources = TServer.GetResourceInfos();
+    private static readonly IReadOnlyList<McpPromptInfo> s_prompts = TServer.GetPromptInfos();
 
     // Cached JSON allocations — Clone() detaches from JsonDocument lifetime
     private static readonly JsonElement s_emptyObject = JsonDocument.Parse("{}").RootElement.Clone();
@@ -41,6 +43,10 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
             "initialize" => HandleInitialize(request),
             "tools/list" => HandleToolsList(request),
             "tools/call" => await HandleToolsCallAsync(request, activity, ct),
+            "resources/list" => HandleResourcesList(request),
+            "resources/read" => await HandleResourcesReadAsync(request, ct),
+            "prompts/list" => HandlePromptsList(request),
+            "prompts/get" => await HandlePromptsGetAsync(request, ct),
             "ping" => HandlePing(request),
             _ => ErrorResponse(request.Id, McpErrorCodes.MethodNotFound, $"Unknown method: {request.Method}")
         };
@@ -74,6 +80,12 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
             w.WriteStartObject("tools");
             w.WriteBoolean("listChanged", false);
             w.WriteEndObject();
+            w.WriteStartObject("resources");
+            w.WriteBoolean("listChanged", false);
+            w.WriteEndObject();
+            w.WriteStartObject("prompts");
+            w.WriteBoolean("listChanged", false);
+            w.WriteEndObject();
             w.WriteEndObject();
             w.WriteStartObject("serverInfo");
             w.WriteString("name", s_info.Name);
@@ -105,6 +117,21 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
                 w.WriteString("description", tool.Description ?? "");
                 w.WritePropertyName("inputSchema");
                 s_toolSchemas[i].WriteTo(w);
+                if (tool.ReadOnlyHint is not null || tool.DestructiveHint is not null ||
+                    tool.IdempotentHint is not null || tool.OpenWorldHint is not null)
+                {
+                    w.WriteStartObject("annotations");
+                    if (tool.ReadOnlyHint is { } ro)
+                        w.WriteBoolean("readOnlyHint", ro);
+                    if (tool.DestructiveHint is { } dest)
+                        w.WriteBoolean("destructiveHint", dest);
+                    if (tool.IdempotentHint is { } idem)
+                        w.WriteBoolean("idempotentHint", idem);
+                    if (tool.OpenWorldHint is { } ow)
+                        w.WriteBoolean("openWorldHint", ow);
+                    w.WriteEndObject();
+                }
+
                 w.WriteEndObject();
             }
 
@@ -168,6 +195,178 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
             w.WriteEndArray();
             if (isError)
                 w.WriteBoolean("isError", true);
+            w.WriteEndObject();
+        }
+
+        return JsonDocument.Parse(ms.ToArray()).RootElement.Clone();
+    }
+
+    private static JsonRpcResponse HandleResourcesList(JsonRpcRequest request)
+    {
+        return SuccessResponse(request.Id, BuildResourcesListResult());
+    }
+
+    private static JsonElement BuildResourcesListResult()
+    {
+        using var ms = new MemoryStream();
+        using (var w = new Utf8JsonWriter(ms))
+        {
+            w.WriteStartObject();
+            w.WriteStartArray("resources");
+            foreach (var resource in s_resources)
+            {
+                w.WriteStartObject();
+                w.WriteString("uri", resource.Uri);
+                if (resource.MimeType is not null)
+                    w.WriteString("mimeType", resource.MimeType);
+                if (resource.Description is not null)
+                    w.WriteString("description", resource.Description);
+                w.WriteEndObject();
+            }
+
+            w.WriteEndArray();
+            w.WriteEndObject();
+        }
+
+        return JsonDocument.Parse(ms.ToArray()).RootElement.Clone();
+    }
+
+    private async Task<JsonRpcResponse> HandleResourcesReadAsync(
+        JsonRpcRequest request, CancellationToken ct)
+    {
+        if (request.Params is not { } p)
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, "Missing params");
+
+        if (!p.TryGetProperty("uri", out var uriEl) || uriEl.ValueKind != JsonValueKind.String)
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, "Missing params.uri");
+
+        var uri = uriEl.GetString()!;
+
+        try
+        {
+            var result = await server.DispatchResourceReadAsync(uri, ct);
+            return SuccessResponse(request.Id, BuildResourceReadResult(uri, result));
+        }
+        catch (ArgumentException ex)
+        {
+            // Unknown URI — generated dispatch throws ArgumentException
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, ex.Message);
+        }
+    }
+
+    private static JsonElement BuildResourceReadResult(string uri, ResourceReadResult result)
+    {
+        using var ms = new MemoryStream();
+        using (var w = new Utf8JsonWriter(ms))
+        {
+            w.WriteStartObject();
+            w.WriteStartArray("contents");
+            w.WriteStartObject();
+            w.WriteString("uri", uri);
+            if (result.IsBinary)
+                w.WriteString("blob", result.Content);
+            else
+                w.WriteString("text", result.Content);
+            w.WriteEndObject();
+            w.WriteEndArray();
+            w.WriteEndObject();
+        }
+
+        return JsonDocument.Parse(ms.ToArray()).RootElement.Clone();
+    }
+
+    private static JsonRpcResponse HandlePromptsList(JsonRpcRequest request)
+    {
+        return SuccessResponse(request.Id, BuildPromptsListResult());
+    }
+
+    private static JsonElement BuildPromptsListResult()
+    {
+        using var ms = new MemoryStream();
+        using (var w = new Utf8JsonWriter(ms))
+        {
+            w.WriteStartObject();
+            w.WriteStartArray("prompts");
+            foreach (var prompt in s_prompts)
+            {
+                w.WriteStartObject();
+                w.WriteString("name", prompt.Name);
+                if (prompt.Description is not null)
+                    w.WriteString("description", prompt.Description);
+                if (prompt.Arguments.Count > 0)
+                {
+                    w.WriteStartArray("arguments");
+                    foreach (var arg in prompt.Arguments)
+                    {
+                        w.WriteStartObject();
+                        w.WriteString("name", arg.Name);
+                        if (arg.Description is not null)
+                            w.WriteString("description", arg.Description);
+                        w.WriteBoolean("required", arg.Required);
+                        w.WriteEndObject();
+                    }
+
+                    w.WriteEndArray();
+                }
+
+                w.WriteEndObject();
+            }
+
+            w.WriteEndArray();
+            w.WriteEndObject();
+        }
+
+        return JsonDocument.Parse(ms.ToArray()).RootElement.Clone();
+    }
+
+    private async Task<JsonRpcResponse> HandlePromptsGetAsync(
+        JsonRpcRequest request, CancellationToken ct)
+    {
+        if (request.Params is not { } p)
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, "Missing params");
+
+        if (!p.TryGetProperty("name", out var nameEl) || nameEl.ValueKind != JsonValueKind.String)
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, "Missing params.name");
+
+        var promptName = nameEl.GetString()!;
+
+        var arguments = p.TryGetProperty("arguments", out var argsEl)
+            ? argsEl
+            : s_emptyObject;
+
+        try
+        {
+            var result = await server.DispatchPromptAsync(promptName, arguments, ct);
+            return SuccessResponse(request.Id, BuildPromptGetResult(result));
+        }
+        catch (ArgumentException ex)
+        {
+            // Unknown prompt name — generated dispatch throws ArgumentException
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, ex.Message);
+        }
+    }
+
+    private static JsonElement BuildPromptGetResult(PromptResult result)
+    {
+        using var ms = new MemoryStream();
+        using (var w = new Utf8JsonWriter(ms))
+        {
+            w.WriteStartObject();
+            if (result.Description is not null)
+                w.WriteString("description", result.Description);
+            w.WriteStartArray("messages");
+            foreach (var message in result.Messages)
+            {
+                w.WriteStartObject();
+                w.WriteString("role", message.Role);
+                w.WriteStartObject("content");
+                w.WriteString("type", "text");
+                w.WriteString("text", message.Content);
+                w.WriteEndObject();
+                w.WriteEndObject();
+            }
+
+            w.WriteEndArray();
             w.WriteEndObject();
         }
 

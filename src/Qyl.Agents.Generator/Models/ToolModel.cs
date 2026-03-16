@@ -17,4 +17,14 @@ internal readonly record struct ToolModel(
     string ResultTypeFullyQualified,
     ReturnKind ReturnKind,
     bool HasCancellationToken,
-    EquatableArray<ToolParameterModel> Parameters);
+    EquatableArray<ToolParameterModel> Parameters,
+    ToolHintValue ReadOnly,
+    ToolHintValue Destructive,
+    ToolHintValue Idempotent,
+    ToolHintValue OpenWorld)
+{
+    public byte ReadOnlyHint => (byte)ReadOnly;
+    public byte IdempotentHint => (byte)Idempotent;
+    public byte DestructiveHint => (byte)Destructive;
+    public byte OpenWorldHint => (byte)OpenWorld;
+}

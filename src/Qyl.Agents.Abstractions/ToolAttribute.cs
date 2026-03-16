@@ -21,4 +21,16 @@ public sealed class ToolAttribute : Attribute
 
     /// <summary>Tool description. Defaults to XML doc summary on the method.</summary>
     public string? Description { get; set; }
+
+    /// <summary>Hint that the tool performs read-only operations.</summary>
+    public ToolHint ReadOnly { get; set; }
+
+    /// <summary>Hint that the tool is idempotent (safe to retry).</summary>
+    public ToolHint Idempotent { get; set; }
+
+    /// <summary>Hint that the tool performs destructive operations.</summary>
+    public ToolHint Destructive { get; set; }
+
+    /// <summary>Hint that the tool interacts with open-world systems.</summary>
+    public ToolHint OpenWorld { get; set; }
 }

@@ -77,6 +77,19 @@ public static class McpHost
         await File.WriteAllTextAsync(outputPath, content, ct);
     }
 
+    /// <summary>
+    ///     Writes the generated llms.txt to disk for LLM indexing.
+    /// </summary>
+    /// <param name="outputPath">Path to write the llms.txt file.</param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task WriteLlmsTxtAsync<TServer>(
+        string outputPath,
+        CancellationToken ct = default) where TServer : class, IMcpServer
+    {
+        var content = TServer.LlmsTxt;
+        await File.WriteAllTextAsync(outputPath, content, ct);
+    }
+
     private static async Task WriteResponseAsync(
         StreamWriter writer,
         JsonRpcResponse response,

@@ -42,6 +42,8 @@ internal static class SkillEmitter
             md.Append("### ").AppendLine(tool.ToolName);
             md.AppendLine();
             md.AppendLine(tool.Description);
+
+            AppendAnnotationHints(md, tool);
             md.AppendLine();
 
             if (!tool.Parameters.IsEmpty)
@@ -63,14 +65,81 @@ internal static class SkillEmitter
             }
         }
 
+        // Resources section
+        if (!server.Resources.IsEmpty)
+        {
+            md.AppendLine("## Resources");
+            md.AppendLine();
+
+            foreach (var resource in server.Resources)
+            {
+                md.Append("- `").Append(resource.Uri).Append('`');
+                if (resource.MimeType is not null)
+                    md.Append(" (").Append(resource.MimeType).Append(')');
+                if (resource.Description is not null)
+                    md.Append(": ").Append(resource.Description);
+                md.AppendLine();
+            }
+
+            md.AppendLine();
+        }
+
+        // Prompts section
+        if (!server.Prompts.IsEmpty)
+        {
+            md.AppendLine("## Prompts");
+            md.AppendLine();
+
+            foreach (var prompt in server.Prompts)
+            {
+                md.Append("### ").AppendLine(prompt.PromptName);
+                md.AppendLine();
+                if (prompt.Description.Length > 0)
+                    md.AppendLine(prompt.Description);
+
+                if (!prompt.Parameters.IsEmpty)
+                {
+                    md.AppendLine();
+                    md.AppendLine("**Arguments:**");
+                    md.AppendLine();
+                    foreach (var p in prompt.Parameters)
+                    {
+                        md.Append("- `").Append(p.CamelCaseName).Append('`');
+                        if (p.IsRequired)
+                            md.Append(" (required)");
+                        if (p.Description is not null)
+                            md.Append(": ").Append(p.Description);
+                        md.AppendLine();
+                    }
+                }
+
+                md.AppendLine();
+            }
+        }
+
         return md.ToString().TrimEnd();
+    }
+
+    private static void AppendAnnotationHints(StringBuilder md, ToolModel tool)
+    {
+        var hints = new List<string>();
+        if (tool.ReadOnly != ToolHintValue.Unset)
+            hints.Add(tool.ReadOnly == ToolHintValue.True ? "read-only" : "not read-only");
+        if (tool.Destructive != ToolHintValue.Unset)
+            hints.Add(tool.Destructive == ToolHintValue.True ? "destructive" : "not destructive");
+        if (tool.Idempotent != ToolHintValue.Unset)
+            hints.Add(tool.Idempotent == ToolHintValue.True ? "idempotent" : "not idempotent");
+        if (tool.OpenWorld != ToolHintValue.Unset)
+            hints.Add(tool.OpenWorld == ToolHintValue.True ? "open-world" : "not open-world");
+
+        if (hints.Count > 0)
+            md.AppendLine().Append("*Annotations: ").Append(string.Join(", ", hints)).AppendLine("*");
     }
 
     private static void EmitYamlValue(StringBuilder sb, string key, string value)
     {
         if (value.Contains('\n'))
         {
-            // Multi-line: use YAML literal block scalar
             sb.Append(key).AppendLine(": |");
             foreach (var line in value.Split('\n'))
                 sb.Append("  ").AppendLine(line.TrimEnd('\r'));
@@ -78,7 +147,6 @@ internal static class SkillEmitter
         else if (value.Contains(':') || value.Contains('#') || value.Contains('"') ||
                  (value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1]))))
         {
-            // Single-line with special chars: double-quoted scalar
             sb.Append(key).Append(": \"")
                 .Append(value.Replace("\\", "\\\\").Replace("\"", "\\\""))
                 .AppendLine("\"");

@@ -91,4 +91,44 @@ internal static class DiagnosticDescriptors
         Category,
         DiagnosticSeverity.Error,
         true);
+
+    public static readonly DiagnosticDescriptor AllHintsUnset = new(
+        "QA0012",
+        "All tool safety hints are Unset",
+        "Method '{0}' has all four safety hints set to Unset — consider specifying at least one",
+        Category,
+        DiagnosticSeverity.Warning,
+        true);
+
+    public static readonly DiagnosticDescriptor ResourceInvalidReturnType = new(
+        "QA0013",
+        "Resource method has invalid return type",
+        "Method '{0}' has unsupported return type '{1}' — resource methods must return string, Task<string>, or ValueTask<string>",
+        Category,
+        DiagnosticSeverity.Error,
+        true);
+
+    public static readonly DiagnosticDescriptor DuplicateResourceUri = new(
+        "QA0014",
+        "Duplicate resource URI",
+        "Resource URI '{0}' is used by multiple methods in class '{1}'",
+        Category,
+        DiagnosticSeverity.Error,
+        true);
+
+    public static readonly DiagnosticDescriptor PromptInvalidReturnType = new(
+        "QA0015",
+        "Prompt method has invalid return type",
+        "Method '{0}' has unsupported return type '{1}' — prompt methods must return string, Task<string>, PromptResult, or Task<PromptResult>",
+        Category,
+        DiagnosticSeverity.Error,
+        true);
+
+    public static readonly DiagnosticDescriptor DuplicatePromptName = new(
+        "QA0016",
+        "Duplicate prompt name",
+        "Prompt name '{0}' is used by multiple methods in class '{1}'",
+        Category,
+        DiagnosticSeverity.Error,
+        true);
 }

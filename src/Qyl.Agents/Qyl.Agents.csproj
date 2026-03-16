@@ -11,7 +11,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Qyl.Agents.Tests"/>
+    <InternalsVisibleTo Include="Qyl.Agents.Http"/>
   </ItemGroup>
 
   <ItemGroup>

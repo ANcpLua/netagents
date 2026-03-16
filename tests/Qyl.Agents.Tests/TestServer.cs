@@ -9,7 +9,7 @@ public partial class CalcServer
     public int CallCount { get; private set; }
 
     /// <summary>Adds two numbers</summary>
-    [Tool]
+    [Tool(ReadOnly = ToolHint.True, Idempotent = ToolHint.True)]
     public int Add([Description("First number")] int a, [Description("Second number")] int b)
     {
         CallCount++;
@@ -17,7 +17,7 @@ public partial class CalcServer
     }
 
     /// <summary>Multiplies two numbers</summary>
-    [Tool]
+    [Tool(ReadOnly = ToolHint.True, Idempotent = ToolHint.True)]
     public Task<int> Multiply([Description("First factor")] int a, [Description("Second factor")] int b,
         CancellationToken ct)
     {
@@ -26,7 +26,7 @@ public partial class CalcServer
     }
 
     /// <summary>Always throws for error testing</summary>
-    [Tool]
+    [Tool(Destructive = ToolHint.False)]
     public string Fail([Description("Error message")] string message)
     {
         CallCount++;

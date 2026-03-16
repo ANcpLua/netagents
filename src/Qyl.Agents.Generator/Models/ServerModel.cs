@@ -8,4 +8,6 @@ internal readonly record struct
         string Description,
         string? Version,
         EquatableArray<TypeDeclarationModel> DeclarationChain,
-        EquatableArray<ToolModel> Tools);
+        EquatableArray<ToolModel> Tools,
+        EquatableArray<ResourceModel> Resources,
+        EquatableArray<PromptModel> Prompts);
