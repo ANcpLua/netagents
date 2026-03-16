@@ -4,6 +4,7 @@
         <Project Path="src/Qyl.Agents.Abstractions/Qyl.Agents.Abstractions.csproj"/>
         <Project Path="src/Qyl.Agents.Generator/Qyl.Agents.Generator.csproj"/>
         <Project Path="src/Qyl.Agents/Qyl.Agents.csproj"/>
+        <Project Path="src/Qyl.Agents.Http/Qyl.Agents.Http.csproj"/>
     </Folder>
     <Folder Name="/tests/">
         <Project Path="tests/NetAgents.Tests/NetAgents.Tests.csproj"/>
