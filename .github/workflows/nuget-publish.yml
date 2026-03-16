@@ -75,6 +75,7 @@ jobs:
           dotnet pack src/Qyl.Agents.Abstractions/Qyl.Agents.Abstractions.csproj -c Release -o artifacts -p:Version=${{ needs.version.outputs.version }} --no-build
           dotnet pack src/Qyl.Agents.Generator/Qyl.Agents.Generator.csproj -c Release -o artifacts -p:Version=${{ needs.version.outputs.version }} --no-build
           dotnet pack src/Qyl.Agents/Qyl.Agents.csproj -c Release -o artifacts -p:Version=${{ needs.version.outputs.version }} --no-build
+          dotnet pack src/Qyl.Agents.Http/Qyl.Agents.Http.csproj -c Release -o artifacts -p:Version=${{ needs.version.outputs.version }} --no-build
           dotnet pack src/NetAgents/NetAgents.csproj -c Release -o artifacts -p:Version=${{ needs.version.outputs.version }} --no-build
         env:
           CI: true
