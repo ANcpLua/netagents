@@ -33,4 +33,7 @@ public sealed class ToolAttribute : Attribute
 
     /// <summary>Hint that the tool interacts with open-world systems.</summary>
     public ToolHint OpenWorld { get; set; }
+
+    /// <summary>Declares whether the tool supports long-running task execution.</summary>
+    public ToolTaskSupport TaskSupport { get; set; }
 }

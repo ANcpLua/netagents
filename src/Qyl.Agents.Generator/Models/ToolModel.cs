@@ -21,7 +21,8 @@ internal readonly record struct ToolModel(
     ToolHintValue ReadOnly,
     ToolHintValue Destructive,
     ToolHintValue Idempotent,
-    ToolHintValue OpenWorld)
+    ToolHintValue OpenWorld,
+    ToolTaskSupportValue TaskSupport)
 {
     public byte ReadOnlyHint => (byte)ReadOnly;
     public byte IdempotentHint => (byte)Idempotent;

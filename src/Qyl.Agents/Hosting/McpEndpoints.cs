@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Protocol;
+using Tasks;
 
 /// <summary>
 ///     Extension methods for mapping an MCP server to ASP.NET Core endpoints.
@@ -21,6 +22,15 @@ public static class McpEndpoints
         => endpoints.MapMcpServer(new TServer(), pattern);
 
     /// <summary>
+    ///     Maps MCP server endpoints using the default parameterless constructor, with task support.
+    /// </summary>
+    public static IEndpointRouteBuilder MapMcpServer<TServer>(
+        this IEndpointRouteBuilder endpoints,
+        IMcpTaskStore taskStore,
+        string pattern = "/mcp") where TServer : class, IMcpServer, new()
+        => endpoints.MapMcpServer(new TServer(), taskStore, pattern);
+
+    /// <summary>
     ///     Maps an existing MCP server instance (for DI or factory patterns).
     ///     <list type="bullet">
     ///         <item><c>POST {pattern}</c> — handles JSON-RPC requests</item>
@@ -33,8 +43,25 @@ public static class McpEndpoints
         this IEndpointRouteBuilder endpoints,
         TServer server,
         string pattern = "/mcp") where TServer : class, IMcpServer
+        => endpoints.MapMcpServerCore(server, null, pattern);
+
+    /// <summary>
+    ///     Maps an existing MCP server instance with task store for long-running tool support.
+    /// </summary>
+    public static IEndpointRouteBuilder MapMcpServer<TServer>(
+        this IEndpointRouteBuilder endpoints,
+        TServer server,
+        IMcpTaskStore taskStore,
+        string pattern = "/mcp") where TServer : class, IMcpServer
+        => endpoints.MapMcpServerCore(server, taskStore, pattern);
+
+    private static IEndpointRouteBuilder MapMcpServerCore<TServer>(
+        this IEndpointRouteBuilder endpoints,
+        TServer server,
+        IMcpTaskStore? taskStore,
+        string pattern) where TServer : class, IMcpServer
     {
-        var handler = new McpProtocolHandler<TServer>(server);
+        var handler = new McpProtocolHandler<TServer>(server, taskStore);
         var normalizedPattern = pattern.TrimEnd('/');
 
         endpoints.MapPost(normalizedPattern, async (HttpContext context) =>

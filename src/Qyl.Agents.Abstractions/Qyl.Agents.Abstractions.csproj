@@ -23,5 +23,7 @@
              Link="Polyfills\CompilerFeatureRequiredAttribute.cs"/>
     <Compile Include="..\..\shared\Polyfills\SetsRequiredMembersAttribute.cs"
              Link="Polyfills\SetsRequiredMembersAttribute.cs"/>
+    <Compile Include="..\..\shared\Polyfills\ExperimentalAttribute.cs"
+             Link="Polyfills\ExperimentalAttribute.cs"/>
   </ItemGroup>
 </Project>

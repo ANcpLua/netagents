@@ -25,4 +25,7 @@ public sealed class McpToolInfo
 
     /// <summary>Safety annotation: open-world hint. Emitted as <c>openWorldHint</c> in MCP wire format.</summary>
     public bool? OpenWorldHint { get; init; }
+
+    /// <summary>Task execution support. Emitted as <c>execution.taskSupport</c> in MCP wire format.</summary>
+    public ToolTaskSupport TaskSupport { get; init; }
 }

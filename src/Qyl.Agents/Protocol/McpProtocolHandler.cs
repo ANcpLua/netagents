@@ -2,8 +2,10 @@ namespace Qyl.Agents.Protocol;
 
 using System.Diagnostics;
 using System.Text.Json;
+using Tasks;
 
-internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer : class, IMcpServer
+internal sealed class McpProtocolHandler<TServer>(TServer server, IMcpTaskStore? taskStore = null)
+    where TServer : class, IMcpServer
 {
     private static readonly McpServerInfo s_info = TServer.GetServerInfo();
     private static readonly IReadOnlyList<McpToolInfo> s_tools = TServer.GetToolInfos();
@@ -18,6 +20,9 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
 
     // Pre-parsed tool schemas (computed once at construction)
     private static readonly JsonElement[] s_toolSchemas = ParseToolSchemas();
+
+    // Whether any tool declares task support (drives capabilities advertisement)
+    private static readonly bool s_hasTaskSupport = HasAnyTaskSupport();
 
     // Shared ActivitySource for transport-level spans
     private static readonly ActivitySource s_activitySource = new("Qyl.Agents",
@@ -47,6 +52,9 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
             "resources/read" => await HandleResourcesReadAsync(request, ct),
             "prompts/list" => HandlePromptsList(request),
             "prompts/get" => await HandlePromptsGetAsync(request, ct),
+            "tasks/list" => await HandleTasksListAsync(request, ct),
+            "tasks/get" => await HandleTasksGetAsync(request, ct),
+            "tasks/cancel" => await HandleTasksCancelAsync(request, ct),
             "ping" => HandlePing(request),
             _ => ErrorResponse(request.Id, McpErrorCodes.MethodNotFound, $"Unknown method: {request.Method}")
         };
@@ -64,12 +72,12 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
         return "tools/call";
     }
 
-    private static JsonRpcResponse HandleInitialize(JsonRpcRequest request)
+    private JsonRpcResponse HandleInitialize(JsonRpcRequest request)
     {
         return SuccessResponse(request.Id, BuildInitializeResult());
     }
 
-    private static JsonElement BuildInitializeResult()
+    private JsonElement BuildInitializeResult()
     {
         using var ms = new MemoryStream();
         using (var w = new Utf8JsonWriter(ms))
@@ -85,6 +93,15 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
             w.WriteEndObject();
             w.WriteStartObject("prompts");
             w.WriteBoolean("listChanged", false);
+            w.WriteEndObject();
+            if (taskStore is not null && s_hasTaskSupport)
+            {
+                w.WriteStartObject("tasks");
+                w.WriteEndObject();
+            }
+
+            // Extensions — empty object signals support for future extensibility
+            w.WriteStartObject("extensions");
             w.WriteEndObject();
             w.WriteEndObject();
             w.WriteStartObject("serverInfo");
@@ -129,6 +146,19 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
                         w.WriteBoolean("idempotentHint", idem);
                     if (tool.OpenWorldHint is { } ow)
                         w.WriteBoolean("openWorldHint", ow);
+                    w.WriteEndObject();
+                }
+
+                if (tool.TaskSupport is not ToolTaskSupport.Unset)
+                {
+                    w.WriteStartObject("execution");
+                    w.WriteString("taskSupport", tool.TaskSupport switch
+                    {
+                        ToolTaskSupport.Forbidden => "forbidden",
+                        ToolTaskSupport.Optional => "optional",
+                        ToolTaskSupport.Required => "required",
+                        _ => "forbidden"
+                    });
                     w.WriteEndObject();
                 }
 
@@ -373,6 +403,104 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
         return JsonDocument.Parse(ms.ToArray()).RootElement.Clone();
     }
 
+    // --- Tasks ---
+
+    private async Task<JsonRpcResponse> HandleTasksListAsync(JsonRpcRequest request, CancellationToken ct)
+    {
+        if (taskStore is null)
+            return ErrorResponse(request.Id, McpErrorCodes.MethodNotFound, "Tasks not enabled");
+
+        var tasks = await taskStore.ListAsync(ct: ct);
+        return SuccessResponse(request.Id, BuildTasksListResult(tasks));
+    }
+
+    private async Task<JsonRpcResponse> HandleTasksGetAsync(JsonRpcRequest request, CancellationToken ct)
+    {
+        if (taskStore is null)
+            return ErrorResponse(request.Id, McpErrorCodes.MethodNotFound, "Tasks not enabled");
+
+        if (request.Params is not { } p)
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, "Missing params");
+
+        if (!p.TryGetProperty("taskId", out var idEl) || idEl.ValueKind != JsonValueKind.String)
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, "Missing params.taskId");
+
+        var task = await taskStore.GetAsync(idEl.GetString()!, ct);
+        if (task is null)
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, "Task not found");
+
+        return SuccessResponse(request.Id, BuildTaskJson(task));
+    }
+
+    private async Task<JsonRpcResponse> HandleTasksCancelAsync(JsonRpcRequest request, CancellationToken ct)
+    {
+        if (taskStore is null)
+            return ErrorResponse(request.Id, McpErrorCodes.MethodNotFound, "Tasks not enabled");
+
+        if (request.Params is not { } p)
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, "Missing params");
+
+        if (!p.TryGetProperty("taskId", out var idEl) || idEl.ValueKind != JsonValueKind.String)
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, "Missing params.taskId");
+
+        var cancelled = await taskStore.CancelAsync(idEl.GetString()!, ct);
+        if (!cancelled)
+            return ErrorResponse(request.Id, McpErrorCodes.InvalidParams, "Task not found or already terminal");
+
+        var task = await taskStore.GetAsync(idEl.GetString()!, ct);
+        return SuccessResponse(request.Id, task is not null ? BuildTaskJson(task) : s_emptyObject);
+    }
+
+    private static JsonElement BuildTasksListResult(IReadOnlyList<McpTask> tasks)
+    {
+        using var ms = new MemoryStream();
+        using (var w = new Utf8JsonWriter(ms))
+        {
+            w.WriteStartObject();
+            w.WriteStartArray("tasks");
+            foreach (var task in tasks)
+                WriteTaskObject(w, task);
+            w.WriteEndArray();
+            w.WriteEndObject();
+        }
+
+        return JsonDocument.Parse(ms.ToArray()).RootElement.Clone();
+    }
+
+    private static JsonElement BuildTaskJson(McpTask task)
+    {
+        using var ms = new MemoryStream();
+        using (var w = new Utf8JsonWriter(ms))
+            WriteTaskObject(w, task);
+        return JsonDocument.Parse(ms.ToArray()).RootElement.Clone();
+    }
+
+    private static void WriteTaskObject(Utf8JsonWriter w, McpTask task)
+    {
+        w.WriteStartObject();
+        w.WriteString("taskId", task.TaskId);
+        w.WriteString("status", task.Status switch
+        {
+            McpTaskStatus.Working => "working",
+            McpTaskStatus.InputRequired => "input_required",
+            McpTaskStatus.Completed => "completed",
+            McpTaskStatus.Failed => "failed",
+            McpTaskStatus.Cancelled => "cancelled",
+            _ => "working"
+        });
+        if (task.StatusMessage is not null)
+            w.WriteString("statusMessage", task.StatusMessage);
+        w.WriteString("createdAt", task.CreatedAt);
+        w.WriteString("lastUpdatedAt", task.LastUpdatedAt);
+        if (task.TimeToLive is { } ttl)
+            w.WriteNumber("ttl", (long)ttl.TotalMilliseconds);
+        if (task.PollInterval is { } pi)
+            w.WriteNumber("pollInterval", (long)pi.TotalMilliseconds);
+        w.WriteEndObject();
+    }
+
+    // --- Helpers ---
+
     private static JsonRpcResponse HandlePing(JsonRpcRequest request)
     {
         return SuccessResponse(request.Id, s_emptyObject);
@@ -400,5 +528,13 @@ internal sealed class McpProtocolHandler<TServer>(TServer server) where TServer 
         }
 
         return schemas;
+    }
+
+    private static bool HasAnyTaskSupport()
+    {
+        foreach (var tool in s_tools)
+            if (tool.TaskSupport is not ToolTaskSupport.Unset)
+                return true;
+        return false;
     }
 }

@@ -44,6 +44,7 @@ internal static class ToolExtractor
         var destructive = ReadHint(toolAttr, "Destructive");
         var idempotent = ReadHint(toolAttr, "Idempotent");
         var openWorld = ReadHint(toolAttr, "OpenWorld");
+        var taskSupport = ReadTaskSupport(toolAttr);
 
         var flow = ParameterExtractor.ExtractParameters(method, cancellationToken)
             .Select(parameters => new ToolModel(
@@ -57,7 +58,8 @@ internal static class ToolExtractor
                 readOnly,
                 destructive,
                 idempotent,
-                openWorld));
+                openWorld,
+                taskSupport));
 
         if (readOnly == ToolHintValue.Unset &&
             destructive == ToolHintValue.Unset &&
@@ -113,6 +115,21 @@ internal static class ToolExtractor
         }
 
         return ToolHintValue.Unset;
+    }
+
+    private static ToolTaskSupportValue ReadTaskSupport(AttributeData? attr)
+    {
+        if (attr is null || attr.NamedArguments.IsDefaultOrEmpty)
+            return ToolTaskSupportValue.Unset;
+
+        foreach (var arg in attr.NamedArguments)
+        {
+            if (string.Equals(arg.Key, "TaskSupport", StringComparison.Ordinal) &&
+                arg.Value.Value is not null)
+                return (ToolTaskSupportValue)Convert.ToByte(arg.Value.Value);
+        }
+
+        return ToolTaskSupportValue.Unset;
     }
 
     private static bool HasCancellationToken(IMethodSymbol method)

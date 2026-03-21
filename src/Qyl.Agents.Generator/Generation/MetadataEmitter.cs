@@ -53,6 +53,9 @@ internal static class MetadataEmitter
                         if (tool.OpenWorld != ToolHintValue.Unset)
                             sb.AppendLine(
                                 $"OpenWorldHint = {HintBool(tool.OpenWorld)},");
+                        if (tool.TaskSupport != ToolTaskSupportValue.Unset)
+                            sb.AppendLine(
+                                $"TaskSupport = global::Qyl.Agents.ToolTaskSupport.{tool.TaskSupport},");
                     }
 
                     sb.AppendLine(",");

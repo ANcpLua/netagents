@@ -53,7 +53,7 @@ src/
 │   ├── Extraction/                # ServerExtractor, ToolExtractor, ParameterExtractor
 │   ├── Models/                    # ServerModel, ToolModel, ToolParameterModel (value-equatable)
 │   └── Generation/                # DispatchEmitter, SchemaEmitter, OTelEmitter, JsonContextEmitter, MetadataEmitter
-└── Qyl.Agents/                    # Runtime: McpHost (stdio), McpProtocolHandler (JSON-RPC)
+└── Qyl.Agents/                    # Runtime: McpHost (stdio), McpEndpoints (HTTP), McpProtocolHandler (JSON-RPC), Tasks/
 
 tests/
 ├── NetAgents.Tests/
@@ -62,6 +62,15 @@ tests/
 
 shared/Polyfills/                  # netstandard2.0 polyfills for Abstractions + Generator
 ```
+
+## Relationship to official MCP C# SDK
+
+- Qyl.Agents is a compile-time source generator — no DI container, no runtime reflection.
+- `McpEndpoints.MapMcpServer<T>()` ≈ official SDK `MapMcp()`.
+- Official SDK's `AddMcpServer()`/`WithHttpTransport()`/`WithTools<T>()` DI pattern has no equivalent — tools are wired at compile time.
+- Official SDK experimental `RunSessionHandler` is not applicable (stateless HTTP POST, no sessions).
+- Tasks (`MCPEXP001`) implemented in `Qyl.Agents.Tasks` — `IMcpTaskStore`, `InMemoryMcpTaskStore`, protocol methods.
+- `[Experimental]` polyfill exists in `shared/Polyfills/` but must NOT be applied to types consumed by `Qyl.Agents` runtime — the internal polyfill metadata leaks to net10.0 consumers and causes QYLEXP errors that cannot be suppressed per repo rules.
 
 ## Cross-repo dependencies
 

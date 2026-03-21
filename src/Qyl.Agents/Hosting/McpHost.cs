@@ -2,6 +2,7 @@ namespace Qyl.Agents.Hosting;
 
 using System.Text.Json;
 using Protocol;
+using Tasks;
 
 /// <summary>
 ///     Hosts an MCP server over stdio (JSON-RPC over stdin/stdout).
@@ -13,11 +14,26 @@ public static class McpHost
     ///     Runs the MCP server, reading JSON-RPC requests from stdin and writing responses to stdout.
     ///     Blocks until stdin is closed or cancellation is requested.
     /// </summary>
-    public static async Task RunStdioAsync<TServer>(
+    public static Task RunStdioAsync<TServer>(
         TServer server,
         CancellationToken ct = default) where TServer : class, IMcpServer
+        => RunStdioCoreAsync(server, null, ct);
+
+    /// <summary>
+    ///     Runs the MCP server over stdio with task store for long-running tool support.
+    /// </summary>
+    public static Task RunStdioAsync<TServer>(
+        TServer server,
+        IMcpTaskStore taskStore,
+        CancellationToken ct = default) where TServer : class, IMcpServer
+        => RunStdioCoreAsync(server, taskStore, ct);
+
+    private static async Task RunStdioCoreAsync<TServer>(
+        TServer server,
+        IMcpTaskStore? taskStore,
+        CancellationToken ct) where TServer : class, IMcpServer
     {
-        var handler = new McpProtocolHandler<TServer>(server);
+        var handler = new McpProtocolHandler<TServer>(server, taskStore);
         var reader = Console.OpenStandardInput();
         var writer = Console.OpenStandardOutput();
 
