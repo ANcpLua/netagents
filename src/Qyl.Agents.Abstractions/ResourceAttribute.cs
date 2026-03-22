@@ -17,6 +17,9 @@ public sealed class ResourceAttribute : Attribute
     /// <summary>Resource URI for MCP protocol (e.g. "config://agents.toml").</summary>
     public string Uri { get; }
 
+    /// <summary>Display name for the resource. Defaults to the method name.</summary>
+    public string? Name { get; set; }
+
     /// <summary>MIME type of the resource content (e.g. "application/toml").</summary>
     public string? MimeType { get; set; }
 

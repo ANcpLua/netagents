@@ -88,6 +88,8 @@ internal static class MetadataEmitter
                         using (sb.BeginBlock())
                         {
                             sb.AppendLine($"Uri = {Lit(resource.Uri)},");
+                            if (resource.Name is not null)
+                                sb.AppendLine($"Name = {Lit(resource.Name)},");
                             if (resource.Description is not null)
                                 sb.AppendLine($"Description = {Lit(resource.Description)},");
                             if (resource.MimeType is not null)
