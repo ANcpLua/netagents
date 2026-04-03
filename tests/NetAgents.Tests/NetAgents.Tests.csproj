@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="xunit.v3.mtp-v2"/>
+    <PackageReference Include="xunit.v3.mtp-v2" ExcludeAssets="analyzers"/>
+    <PackageReference Include="xunit.analyzers" PrivateAssets="all"/>
   </ItemGroup>
 
   <ItemGroup>
