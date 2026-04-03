@@ -29,10 +29,6 @@ dotnet add package Qyl.Agents.Generator
 dotnet add package Qyl.Agents
 ```
 
-### Test tooling
-
-This repo now uses `xunit.analyzers` (via central package versions) for xUnit analyzer rules and code fixes, including solution-wide `xUnit1051` cancellation-token fixes.
-
 ## Quick Start
 
 ```csharp
