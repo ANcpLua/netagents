@@ -2,6 +2,7 @@ namespace NetAgents.Tests.Agents;
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using AwesomeAssertions;
 using NetAgents.Agents;
 using Xunit;
 
@@ -44,7 +45,7 @@ public class McpWriterTests : IAsyncLifetime
     public async Task SkipsWhenNoServers()
     {
         await McpWriter.WriteMcpConfigsAsync(["claude"], [], Resolver, Ct);
-        Assert.False(File.Exists(Path.Combine(_dir, ".mcp.json")));
+        File.Exists(Path.Combine(_dir, ".mcp.json")).Should().BeFalse();
     }
 
     [Fact]
@@ -54,15 +55,15 @@ public class McpWriterTests : IAsyncLifetime
 
         var doc = await ReadJson(".mcp.json");
         var server = doc["mcpServers"]!["github"]!.AsObject();
-        Assert.Equal("npx", server["command"]!.GetValue<string>());
-        Assert.Equal("${GITHUB_TOKEN}", server["env"]!["GITHUB_TOKEN"]!.GetValue<string>());
+        server["command"]!.GetValue<string>().Should().Be("npx");
+        server["env"]!["GITHUB_TOKEN"]!.GetValue<string>().Should().Be("${GITHUB_TOKEN}");
     }
 
     [Fact]
     public async Task WritesCursorMcpJson()
     {
         await McpWriter.WriteMcpConfigsAsync(["cursor"], [Stdio], Resolver, Ct);
-        Assert.True(File.Exists(Path.Combine(_dir, ".cursor", "mcp.json")));
+        File.Exists(Path.Combine(_dir, ".cursor", "mcp.json")).Should().BeTrue();
     }
 
     [Fact]
@@ -72,8 +73,8 @@ public class McpWriterTests : IAsyncLifetime
 
         var doc = await ReadJson(".vscode", "mcp.json");
         var server = doc["servers"]!["github"]!.AsObject();
-        Assert.Equal("stdio", server["type"]!.GetValue<string>());
-        Assert.Equal("${input:GITHUB_TOKEN}", server["env"]!["GITHUB_TOKEN"]!.GetValue<string>());
+        server["type"]!.GetValue<string>().Should().Be("stdio");
+        server["env"]!["GITHUB_TOKEN"]!.GetValue<string>().Should().Be("${input:GITHUB_TOKEN}");
     }
 
     [Fact]
@@ -82,8 +83,8 @@ public class McpWriterTests : IAsyncLifetime
         await McpWriter.WriteMcpConfigsAsync(["codex"], [Stdio], Resolver, Ct);
 
         var raw = await File.ReadAllTextAsync(Path.Combine(_dir, ".codex", "config.toml"), Ct);
-        Assert.Contains("mcp_servers", raw);
-        Assert.Contains("github", raw);
+        raw.Should().Contain("mcp_servers");
+        raw.Should().Contain("github");
     }
 
     [Fact]
@@ -93,7 +94,7 @@ public class McpWriterTests : IAsyncLifetime
 
         var doc = await ReadJson("opencode.json");
         var server = doc["mcp"]!["github"]!.AsObject();
-        Assert.Equal("local", server["type"]!.GetValue<string>());
+        server["type"]!.GetValue<string>().Should().Be("local");
     }
 
     [Fact]
@@ -101,9 +102,9 @@ public class McpWriterTests : IAsyncLifetime
     {
         await McpWriter.WriteMcpConfigsAsync(["claude", "cursor", "vscode"], [Stdio], Resolver, Ct);
 
-        Assert.True(File.Exists(Path.Combine(_dir, ".mcp.json")));
-        Assert.True(File.Exists(Path.Combine(_dir, ".cursor", "mcp.json")));
-        Assert.True(File.Exists(Path.Combine(_dir, ".vscode", "mcp.json")));
+        File.Exists(Path.Combine(_dir, ".mcp.json")).Should().BeTrue();
+        File.Exists(Path.Combine(_dir, ".cursor", "mcp.json")).Should().BeTrue();
+        File.Exists(Path.Combine(_dir, ".vscode", "mcp.json")).Should().BeTrue();
     }
 
     [Fact]
@@ -113,9 +114,9 @@ public class McpWriterTests : IAsyncLifetime
 
         var doc = await ReadJson(".mcp.json");
         var servers = doc["mcpServers"]!.AsObject();
-        Assert.Equal(2, servers.Count);
-        Assert.NotNull(servers["github"]);
-        Assert.NotNull(servers["remote"]);
+        servers.Count.Should().Be(2);
+        servers["github"].Should().NotBeNull();
+        servers["remote"].Should().NotBeNull();
     }
 
     [Fact]
@@ -125,7 +126,7 @@ public class McpWriterTests : IAsyncLifetime
 
         var doc = await ReadJson(".mcp.json");
         var server = doc["mcpServers"]!["remote"]!.AsObject();
-        Assert.Equal("http", server["type"]!.GetValue<string>());
+        server["type"]!.GetValue<string>().Should().Be("http");
     }
 
     [Fact]
@@ -135,8 +136,8 @@ public class McpWriterTests : IAsyncLifetime
 
         var doc = await ReadJson(".cursor", "mcp.json");
         var server = doc["mcpServers"]!["remote"]!.AsObject();
-        Assert.Null(server["type"]);
-        Assert.Equal("https://mcp.example.com/sse", server["url"]!.GetValue<string>());
+        server["type"].Should().BeNull();
+        server["url"]!.GetValue<string>().Should().Be("https://mcp.example.com/sse");
     }
 
     [Fact]
@@ -145,8 +146,8 @@ public class McpWriterTests : IAsyncLifetime
         await McpWriter.WriteMcpConfigsAsync(["codex"], [Http], Resolver, Ct);
 
         var raw = await File.ReadAllTextAsync(Path.Combine(_dir, ".codex", "config.toml"), Ct);
-        Assert.Contains("http_headers", raw);
-        Assert.Contains("Bearer tok", raw);
+        raw.Should().Contain("http_headers");
+        raw.Should().Contain("Bearer tok");
     }
 
     [Fact]
@@ -159,8 +160,8 @@ public class McpWriterTests : IAsyncLifetime
         await McpWriter.WriteMcpConfigsAsync(["codex"], [Stdio], Resolver, Ct);
 
         var raw = await File.ReadAllTextAsync(Path.Combine(codexDir, "config.toml"), Ct);
-        Assert.Contains("model", raw);
-        Assert.Contains("mcp_servers", raw);
+        raw.Should().Contain("model");
+        raw.Should().Contain("mcp_servers");
     }
 
     [Fact]
@@ -177,8 +178,8 @@ public class McpWriterTests : IAsyncLifetime
         await McpWriter.WriteMcpConfigsAsync(["opencode"], [Stdio], Resolver, Ct);
 
         var doc = await ReadJson("opencode.json");
-        Assert.NotNull(doc["mcp"]!["github"]);
-        Assert.NotNull(doc["mcp"]!["my-custom-server"]);
+        doc["mcp"]!["github"].Should().NotBeNull();
+        doc["mcp"]!["my-custom-server"].Should().NotBeNull();
     }
 
     [Fact]
@@ -190,14 +191,14 @@ public class McpWriterTests : IAsyncLifetime
         await McpWriter.WriteMcpConfigsAsync(["claude"], [Stdio], Resolver, Ct);
         var second = await File.ReadAllTextAsync(Path.Combine(_dir, ".mcp.json"), Ct);
 
-        Assert.Equal(first, second);
+        second.Should().Be(first);
     }
 
     [Fact]
     public async Task CreatesParentDirectories()
     {
         await McpWriter.WriteMcpConfigsAsync(["cursor"], [Stdio], Resolver, Ct);
-        Assert.True(File.Exists(Path.Combine(_dir, ".cursor", "mcp.json")));
+        File.Exists(Path.Combine(_dir, ".cursor", "mcp.json")).Should().BeTrue();
     }
 
     // ── verify tests ─────────────────────────────────────────────────────────
@@ -207,15 +208,15 @@ public class McpWriterTests : IAsyncLifetime
     {
         await McpWriter.WriteMcpConfigsAsync(["claude"], [Stdio], Resolver, Ct);
         var issues = await McpWriter.VerifyMcpConfigsAsync(["claude"], [Stdio], Resolver, Ct);
-        Assert.Empty(issues);
+        issues.Should().BeEmpty();
     }
 
     [Fact]
     public async Task Verify_ReportsMissingConfigFile()
     {
         var issues = await McpWriter.VerifyMcpConfigsAsync(["claude"], [Stdio], Resolver, Ct);
-        Assert.Single(issues);
-        Assert.Contains("missing", issues[0].Issue);
+        issues.Should().ContainSingle();
+        issues[0].Issue.Should().Contain("missing");
     }
 
     [Fact]
@@ -223,13 +224,13 @@ public class McpWriterTests : IAsyncLifetime
     {
         await McpWriter.WriteMcpConfigsAsync(["claude"], [Stdio], Resolver, Ct);
         var issues = await McpWriter.VerifyMcpConfigsAsync(["claude"], [Stdio, Http], Resolver, Ct);
-        Assert.Contains(issues, i => i.Issue.Contains("remote"));
+        issues.Should().Contain(i => i.Issue.Contains("remote"));
     }
 
     [Fact]
     public async Task Verify_EmptyWhenNoServers()
     {
         var issues = await McpWriter.VerifyMcpConfigsAsync(["claude"], [], Resolver, Ct);
-        Assert.Empty(issues);
+        issues.Should().BeEmpty();
     }
 }

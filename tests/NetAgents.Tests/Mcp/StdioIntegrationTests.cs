@@ -2,6 +2,7 @@ namespace NetAgents.Tests.Mcp;
 
 using System.Diagnostics;
 using System.Text.Json;
+using AwesomeAssertions;
 using NetAgents.Mcp;
 using Xunit;
 
@@ -68,8 +69,8 @@ public sealed class StdioIntegrationTests
 
         var initResponse = await HandshakeAsync(process.StandardInput, process.StandardOutput, cts.Token);
         var initDoc = JsonDocument.Parse(initResponse);
-        Assert.Equal("2.0", initDoc.RootElement.GetProperty("jsonrpc").GetString());
-        Assert.True(initDoc.RootElement.GetProperty("result").TryGetProperty("serverInfo", out _));
+        initDoc.RootElement.GetProperty("jsonrpc").GetString().Should().Be("2.0");
+        initDoc.RootElement.GetProperty("result").TryGetProperty("serverInfo", out _).Should().BeTrue();
 
         await process.StandardInput.WriteLineAsync(JsonSerializer.Serialize(new
         {
@@ -80,8 +81,8 @@ public sealed class StdioIntegrationTests
 
         var toolResponse = await process.StandardOutput.ReadLineAsync(cts.Token);
         var toolDoc = JsonDocument.Parse(toolResponse!);
-        Assert.Equal(2, toolDoc.RootElement.GetProperty("id").GetInt32());
-        Assert.True(toolDoc.RootElement.GetProperty("result").TryGetProperty("content", out _));
+        toolDoc.RootElement.GetProperty("id").GetInt32().Should().Be(2);
+        toolDoc.RootElement.GetProperty("result").TryGetProperty("content", out _).Should().BeTrue();
 
         process.StandardInput.Close();
         await process.WaitForExitAsync(cts.Token);
@@ -108,7 +109,7 @@ public sealed class StdioIntegrationTests
         var response = await process.StandardOutput.ReadLineAsync(cts.Token);
         var doc = JsonDocument.Parse(response!);
         var result = doc.RootElement.GetProperty("result");
-        Assert.True(result.GetProperty("isError").GetBoolean());
+        result.GetProperty("isError").GetBoolean().Should().BeTrue();
 
         process.StandardInput.Close();
         await process.WaitForExitAsync(cts.Token);

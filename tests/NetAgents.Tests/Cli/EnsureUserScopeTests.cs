@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using AwesomeAssertions;
 using NetAgents.Agents;
 using NetAgents.Cli;
 using Xunit;
@@ -38,14 +39,14 @@ public sealed class EnsureUserScopeTests
 
         await EnsureUserScope.EnsureUserScopeBootstrappedAsync(scope, TestContext.Current.CancellationToken);
 
-        Assert.True(File.Exists(scope.ConfigPath));
-        Assert.True(Directory.Exists(scope.SkillsDir));
+        File.Exists(scope.ConfigPath).Should().BeTrue();
+        Directory.Exists(scope.SkillsDir).Should().BeTrue();
 
         var content = await File.ReadAllTextAsync(scope.ConfigPath, TestContext.Current.CancellationToken);
-        Assert.Contains("version = 1", content);
+        content.Should().Contain("version = 1");
 
         foreach (var id in AgentRegistry.AllAgentIds())
-            Assert.Contains($"\"{id}\"", content);
+            content.Should().Contain($"\"{id}\"");
     }
 
     [Fact]
@@ -60,7 +61,7 @@ public sealed class EnsureUserScopeTests
         await EnsureUserScope.EnsureUserScopeBootstrappedAsync(scope, TestContext.Current.CancellationToken);
         var contentAfter = await File.ReadAllTextAsync(scope.ConfigPath, TestContext.Current.CancellationToken);
 
-        Assert.Equal(content, contentAfter);
+        contentAfter.Should().Be(content);
     }
 
     [Fact]
@@ -75,6 +76,6 @@ public sealed class EnsureUserScopeTests
 
         await EnsureUserScope.EnsureUserScopeBootstrappedAsync(scope, TestContext.Current.CancellationToken);
 
-        Assert.False(File.Exists(scope.ConfigPath));
+        File.Exists(scope.ConfigPath).Should().BeFalse();
     }
 }

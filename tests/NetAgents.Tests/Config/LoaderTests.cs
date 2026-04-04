@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Config;
 
+using AwesomeAssertions;
 using NetAgents.Config;
 using Xunit;
 
@@ -38,11 +39,11 @@ public class LoaderTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
-        Assert.Equal(1, config.Version);
+        config.Version.Should().Be(1);
         var pdf = config.Skills.OfType<RegularSkillDependency>().FirstOrDefault(s => s.Name == "pdf");
-        Assert.NotNull(pdf);
-        Assert.Equal("anthropics/skills", pdf.Source);
-        Assert.Equal("v1.0.0", pdf.Ref);
+        pdf.Should().NotBeNull();
+        pdf!.Source.Should().Be("anthropics/skills");
+        pdf.Ref.Should().Be("v1.0.0");
     }
 
     [Fact]
@@ -52,8 +53,8 @@ public class LoaderTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
-        Assert.Equal(1, config.Version);
-        Assert.Empty(config.Skills);
+        config.Version.Should().Be(1);
+        config.Skills.Should().BeEmpty();
     }
 
     [Fact]
@@ -90,8 +91,8 @@ public class LoaderTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
-        Assert.NotNull(config.Symlinks);
-        Assert.Equal([".claude"], config.Symlinks.Targets);
+        config.Symlinks.Should().NotBeNull();
+        config.Symlinks!.Targets.Should().BeEquivalentTo([".claude"]);
     }
 
     [Fact]
@@ -110,9 +111,9 @@ public class LoaderTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
-        Assert.Equal(["claude", "cursor"], config.Agents);
-        Assert.Single(config.Mcp);
-        Assert.Equal("github", config.Mcp[0].Name);
+        config.Agents.Should().BeEquivalentTo(["claude", "cursor"]);
+        config.Mcp.Should().ContainSingle();
+        config.Mcp[0].Name.Should().Be("github");
     }
 
     [Fact]
@@ -132,9 +133,9 @@ public class LoaderTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
-        Assert.Single(config.Skills);
-        var dep = Assert.IsType<WildcardSkillDependency>(config.Skills[0]);
-        Assert.Equal("getsentry/skills", dep.Source);
+        config.Skills.Should().ContainSingle();
+        var dep = config.Skills[0].Should().BeOfType<WildcardSkillDependency>().Which;
+        dep.Source.Should().Be("getsentry/skills");
     }
 
     [Fact]
@@ -145,8 +146,8 @@ public class LoaderTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
-        var dep = Assert.IsType<WildcardSkillDependency>(config.Skills[0]);
-        Assert.Equal(["deprecated"], dep.Exclude);
+        var dep = config.Skills[0].Should().BeOfType<WildcardSkillDependency>().Which;
+        dep.Exclude.Should().BeEquivalentTo(["deprecated"]);
     }
 
     [Fact]
@@ -157,8 +158,8 @@ public class LoaderTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
-        var dep = Assert.IsType<WildcardSkillDependency>(config.Skills[0]);
-        Assert.Empty(dep.Exclude);
+        var dep = config.Skills[0].Should().BeOfType<WildcardSkillDependency>().Which;
+        dep.Exclude.Should().BeEmpty();
     }
 
     [Fact]
@@ -169,7 +170,7 @@ public class LoaderTests : IAsyncLifetime
             CT);
 
         var ex = await Assert.ThrowsAsync<ConfigException>(() => ConfigLoader.LoadAsync(ConfigPath, CT));
-        Assert.Contains("Duplicate wildcard", ex.Message);
+        ex.Message.Should().Contain("Duplicate wildcard");
     }
 
     [Fact]
@@ -181,7 +182,7 @@ public class LoaderTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
-        Assert.Equal(2, config.Skills.Count);
+        config.Skills.Count.Should().Be(2);
     }
 
     [Fact]
@@ -193,6 +194,6 @@ public class LoaderTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(ConfigPath, CT);
 
-        Assert.Equal(2, config.Skills.Count);
+        config.Skills.Count.Should().Be(2);
     }
 }

@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using AwesomeAssertions;
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
 using Xunit;
@@ -26,31 +27,31 @@ public sealed class ClassifyTrustSourceTests
     public void ClassifiesOwnerRepo_AsGithubRepos()
     {
         var (field, value) = TrustCommand.ClassifyTrustSource("external-org/specific-repo");
-        Assert.Equal("github_repos", field);
-        Assert.Equal("external-org/specific-repo", value);
+        field.Should().Be("github_repos");
+        value.Should().Be("external-org/specific-repo");
     }
 
     [Fact]
     public void ClassifiesDomain_AsGitDomains()
     {
         var (field, value) = TrustCommand.ClassifyTrustSource("git.corp.example.com");
-        Assert.Equal("git_domains", field);
-        Assert.Equal("git.corp.example.com", value);
+        field.Should().Be("git_domains");
+        value.Should().Be("git.corp.example.com");
     }
 
     [Fact]
     public void ClassifiesBareName_AsGithubOrgs()
     {
         var (field, value) = TrustCommand.ClassifyTrustSource("getsentry");
-        Assert.Equal("github_orgs", field);
-        Assert.Equal("getsentry", value);
+        field.Should().Be("github_orgs");
+        value.Should().Be("getsentry");
     }
 
     [Fact]
     public void PrefersSlash_OverDotForClassification()
     {
         var (field, _) = TrustCommand.ClassifyTrustSource("owner.co/repo");
-        Assert.Equal("github_repos", field);
+        field.Should().Be("github_repos");
     }
 }
 
@@ -78,7 +79,7 @@ public sealed class TrustAddTests
         await TrustCommand.RunTrustAddAsync(scope, "getsentry", CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Contains("getsentry", config.Trust!.GithubOrgs);
+        config.Trust!.GithubOrgs.Should().Contain("getsentry");
     }
 
     [Fact]
@@ -92,7 +93,7 @@ public sealed class TrustAddTests
         await TrustCommand.RunTrustAddAsync(scope, "anthropics", CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Equal(["getsentry", "anthropics"], config.Trust!.GithubOrgs);
+        config.Trust!.GithubOrgs.Should().BeEquivalentTo(["getsentry", "anthropics"]);
     }
 
     [Fact]
@@ -106,8 +107,8 @@ public sealed class TrustAddTests
         await TrustCommand.RunTrustAddAsync(scope, "external/repo", CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Equal(["getsentry"], config.Trust!.GithubOrgs);
-        Assert.Contains("external/repo", config.Trust.GithubRepos);
+        config.Trust!.GithubOrgs.Should().BeEquivalentTo(["getsentry"]);
+        config.Trust.GithubRepos.Should().Contain("external/repo");
     }
 
     [Fact]
@@ -120,7 +121,7 @@ public sealed class TrustAddTests
 
         var ex = await Assert.ThrowsAsync<TrustCommandException>(() =>
             TrustCommand.RunTrustAddAsync(scope, "GetSentry", CT));
-        Assert.Contains("already in", ex.Message);
+        ex.Message.Should().Contain("already in");
     }
 }
 
@@ -149,7 +150,7 @@ public sealed class TrustRemoveTests
         await TrustCommand.RunTrustRemoveAsync(scope, "getsentry", CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Equal(["anthropics"], config.Trust!.GithubOrgs);
+        config.Trust!.GithubOrgs.Should().BeEquivalentTo(["anthropics"]);
     }
 
     [Fact]
@@ -162,7 +163,7 @@ public sealed class TrustRemoveTests
 
         var ex = await Assert.ThrowsAsync<TrustCommandException>(() =>
             TrustCommand.RunTrustRemoveAsync(scope, "nope", CT));
-        Assert.Contains("not found", ex.Message);
+        ex.Message.Should().Contain("not found");
     }
 }
 
@@ -180,8 +181,8 @@ public sealed class GetTrustListTests
 
         var config = await ConfigLoader.LoadAsync(configPath, CT);
         var result = TrustCommand.GetTrustList(config);
-        Assert.IsAssignableFrom<IReadOnlyList<TrustCommand.TrustListEntry>>(result);
-        Assert.Empty((IReadOnlyList<TrustCommand.TrustListEntry>)result);
+        result.Should().BeAssignableTo<IReadOnlyList<TrustCommand.TrustListEntry>>();
+        ((IReadOnlyList<TrustCommand.TrustListEntry>)result).Should().BeEmpty();
     }
 
     [Fact]
@@ -193,7 +194,7 @@ public sealed class GetTrustListTests
         await File.WriteAllTextAsync(configPath, "version = 1\n\n[trust]\nallow_all = true\n", CT);
 
         var config = await ConfigLoader.LoadAsync(configPath, CT);
-        Assert.Equal("allow_all", TrustCommand.GetTrustList(config));
+        TrustCommand.GetTrustList(config).Should().Be("allow_all");
     }
 
     [Fact]
@@ -208,9 +209,9 @@ public sealed class GetTrustListTests
 
         var config = await ConfigLoader.LoadAsync(configPath, CT);
         var entries = (IReadOnlyList<TrustCommand.TrustListEntry>)TrustCommand.GetTrustList(config);
-        Assert.Equal(3, entries.Count);
-        Assert.Equal(new TrustCommand.TrustListEntry("github_org", "getsentry"), entries[0]);
-        Assert.Equal(new TrustCommand.TrustListEntry("github_repo", "ext/repo"), entries[1]);
-        Assert.Equal(new TrustCommand.TrustListEntry("git_domain", "git.corp.com"), entries[2]);
+        entries.Count.Should().Be(3);
+        entries[0].Should().Be(new TrustCommand.TrustListEntry("github_org", "getsentry"));
+        entries[1].Should().Be(new TrustCommand.TrustListEntry("github_repo", "ext/repo"));
+        entries[2].Should().Be(new TrustCommand.TrustListEntry("git_domain", "git.corp.com"));
     }
 }

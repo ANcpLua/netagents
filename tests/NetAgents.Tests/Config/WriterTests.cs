@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Config;
 
+using AwesomeAssertions;
 using NetAgents.Config;
 using Xunit;
 
@@ -25,33 +26,31 @@ public class WriterTests : IAsyncLifetime
         await ValueTask.CompletedTask;
     }
 
-    // ── GenerateDefaultConfig ────────────────────────────────────────────────────
-
     [Fact]
     public async Task DefaultConfig_ProducesValidToml()
     {
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Equal(1, config.Version);
-        Assert.Empty(config.Skills);
+        config.Version.Should().Be(1);
+        config.Skills.Should().BeEmpty();
     }
 
     [Fact]
     public void DefaultConfig_DoesNotContainGitignore()
     {
-        Assert.DoesNotContain("gitignore", ConfigWriter.GenerateDefaultConfig());
+        ConfigWriter.GenerateDefaultConfig().Should().NotContain("gitignore");
     }
 
     [Fact]
     public void DefaultConfig_DoesNotContainPin()
     {
-        Assert.DoesNotContain("pin", ConfigWriter.GenerateDefaultConfig());
+        ConfigWriter.GenerateDefaultConfig().Should().NotContain("pin");
     }
 
     [Fact]
     public void DefaultConfig_IncludesAgents()
     {
         var content = ConfigWriter.GenerateDefaultConfig(new DefaultConfigOptions(["claude", "cursor"]));
-        Assert.Contains("agents = [\"claude\", \"cursor\"]", content);
+        content.Should().Contain("agents = [\"claude\", \"cursor\"]");
     }
 
     [Fact]
@@ -59,8 +58,8 @@ public class WriterTests : IAsyncLifetime
     {
         var content = ConfigWriter.GenerateDefaultConfig(new DefaultConfigOptions(
             Trust: new TrustConfig(true, [], [], [])));
-        Assert.Contains("[trust]", content);
-        Assert.Contains("allow_all = true", content);
+        content.Should().Contain("[trust]");
+        content.Should().Contain("allow_all = true");
     }
 
     [Fact]
@@ -68,11 +67,11 @@ public class WriterTests : IAsyncLifetime
     {
         var content = ConfigWriter.GenerateDefaultConfig(new DefaultConfigOptions(
             Trust: new TrustConfig(false, ["anthropics"], ["owner/repo"], ["gitlab.example.com"])));
-        Assert.Contains("[trust]", content);
+        content.Should().Contain("[trust]");
         Assert.Matches("github_orgs.*\"anthropics\"", content);
         Assert.Matches("github_repos.*\"owner/repo\"", content);
         Assert.Matches("git_domains.*\"gitlab\\.example\\.com\"", content);
-        Assert.DoesNotContain("allow_all", content);
+        content.Should().NotContain("allow_all");
     }
 
     [Fact]
@@ -80,7 +79,7 @@ public class WriterTests : IAsyncLifetime
     {
         var content = ConfigWriter.GenerateDefaultConfig(new DefaultConfigOptions(
             Trust: new TrustConfig(false, [], [], [])));
-        Assert.DoesNotContain("[trust]", content);
+        content.Should().NotContain("[trust]");
     }
 
     [Fact]
@@ -92,9 +91,9 @@ public class WriterTests : IAsyncLifetime
         await File.WriteAllTextAsync(_configPath, content, CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Equal(1, config.Version);
-        Assert.Equal(["claude"], config.Agents);
-        Assert.Equal(["my-org"], config.Trust?.GithubOrgs);
+        config.Version.Should().Be(1);
+        config.Agents.Should().BeEquivalentTo(["claude"]);
+        config.Trust?.GithubOrgs.Should().BeEquivalentTo(["my-org"]);
     }
 
     [Fact]
@@ -102,9 +101,9 @@ public class WriterTests : IAsyncLifetime
     {
         var content = ConfigWriter.GenerateDefaultConfig(new DefaultConfigOptions(
             Skills: [new SkillEntry("dotagents", "getsentry/dotagents")]));
-        Assert.Contains("[[skills]]", content);
-        Assert.Contains("name = \"dotagents\"", content);
-        Assert.Contains("source = \"getsentry/dotagents\"", content);
+        content.Should().Contain("[[skills]]");
+        content.Should().Contain("name = \"dotagents\"");
+        content.Should().Contain("source = \"getsentry/dotagents\"");
     }
 
     [Fact]
@@ -112,21 +111,21 @@ public class WriterTests : IAsyncLifetime
     {
         var content = ConfigWriter.GenerateDefaultConfig(new DefaultConfigOptions(
             Skills: [new SkillEntry("my-skill", "org/repo", "v1.0.0", "skills/my-skill")]));
-        Assert.Contains("ref = \"v1.0.0\"", content);
-        Assert.Contains("path = \"skills/my-skill\"", content);
+        content.Should().Contain("ref = \"v1.0.0\"");
+        content.Should().Contain("path = \"skills/my-skill\"");
     }
 
     [Fact]
     public void DefaultConfig_NoSkillsWhenOmitted()
     {
-        Assert.DoesNotContain("[[skills]]", ConfigWriter.GenerateDefaultConfig());
+        ConfigWriter.GenerateDefaultConfig().Should().NotContain("[[skills]]");
     }
 
     [Fact]
     public void DefaultConfig_NoSkillsWhenEmpty()
     {
         var content = ConfigWriter.GenerateDefaultConfig(new DefaultConfigOptions(Skills: []));
-        Assert.DoesNotContain("[[skills]]", content);
+        content.Should().NotContain("[[skills]]");
     }
 
     [Fact]
@@ -141,14 +140,12 @@ public class WriterTests : IAsyncLifetime
         await File.WriteAllTextAsync(_configPath, content, CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Equal(2, config.Skills.Count);
-        var first = Assert.IsType<RegularSkillDependency>(config.Skills[0]);
-        Assert.Equal("dotagents", first.Name);
-        var second = Assert.IsType<RegularSkillDependency>(config.Skills[1]);
-        Assert.Equal("v2.0.0", second.Ref);
+        config.Skills.Count.Should().Be(2);
+        var first = config.Skills[0].Should().BeOfType<RegularSkillDependency>().Which;
+        first.Name.Should().Be("dotagents");
+        var second = config.Skills[1].Should().BeOfType<RegularSkillDependency>().Which;
+        second.Ref.Should().Be("v2.0.0");
     }
-
-    // ── AddSkillToConfig ─────────────────────────────────────────────────────────
 
     [Fact]
     public async Task AddSkill_SourceOnly()
@@ -157,8 +154,8 @@ public class WriterTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
         var pdf = config.Skills.OfType<RegularSkillDependency>().FirstOrDefault(s => s.Name == "pdf");
-        Assert.NotNull(pdf);
-        Assert.Equal("anthropics/skills", pdf.Source);
+        pdf.Should().NotBeNull();
+        pdf!.Source.Should().Be("anthropics/skills");
     }
 
     [Fact]
@@ -168,7 +165,7 @@ public class WriterTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
         var pdf = config.Skills.OfType<RegularSkillDependency>().First(s => s.Name == "pdf");
-        Assert.Equal("v1.0.0", pdf.Ref);
+        pdf.Ref.Should().Be("v1.0.0");
     }
 
     [Fact]
@@ -179,8 +176,8 @@ public class WriterTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
         var review = config.Skills.OfType<RegularSkillDependency>().First(s => s.Name == "review");
-        Assert.Equal("git:https://example.com/repo.git", review.Source);
-        Assert.Equal("skills/review", review.Path);
+        review.Source.Should().Be("git:https://example.com/repo.git");
+        review.Path.Should().Be("skills/review");
     }
 
     [Fact]
@@ -190,7 +187,7 @@ public class WriterTests : IAsyncLifetime
         await ConfigWriter.AddSkillToConfigAsync(_configPath, "b", "org/repo-b", ct: CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Equal(2, config.Skills.Count);
+        config.Skills.Count.Should().Be(2);
     }
 
     [Fact]
@@ -200,10 +197,8 @@ public class WriterTests : IAsyncLifetime
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
         var skill = config.Skills.OfType<RegularSkillDependency>().First(s => s.Name == "my-skill");
-        Assert.Equal("path:.agents/skills/my-skill", skill.Source);
+        skill.Source.Should().Be("path:.agents/skills/my-skill");
     }
-
-    // ── RemoveSkillFromConfig ────────────────────────────────────────────────────
 
     [Fact]
     public async Task RemoveSkill_ExistingSkill()
@@ -212,7 +207,7 @@ public class WriterTests : IAsyncLifetime
         await ConfigWriter.RemoveSkillFromConfigAsync(_configPath, "pdf", CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.DoesNotContain(config.Skills.OfType<RegularSkillDependency>(), s => s.Name == "pdf");
+        config.Skills.OfType<RegularSkillDependency>().Should().NotContain(s => s.Name == "pdf");
     }
 
     [Fact]
@@ -223,8 +218,8 @@ public class WriterTests : IAsyncLifetime
         await ConfigWriter.RemoveSkillFromConfigAsync(_configPath, "a", CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.DoesNotContain(config.Skills.OfType<RegularSkillDependency>(), s => s.Name == "a");
-        Assert.Contains(config.Skills.OfType<RegularSkillDependency>(), s => s.Name == "b");
+        config.Skills.OfType<RegularSkillDependency>().Should().NotContain(s => s.Name == "a");
+        config.Skills.OfType<RegularSkillDependency>().Should().Contain(s => s.Name == "b");
     }
 
     [Fact]
@@ -233,10 +228,8 @@ public class WriterTests : IAsyncLifetime
         var before = await File.ReadAllTextAsync(_configPath, CT);
         await ConfigWriter.RemoveSkillFromConfigAsync(_configPath, "nope", CT);
         var after = await File.ReadAllTextAsync(_configPath, CT);
-        Assert.Equal(before, after);
+        after.Should().Be(before);
     }
-
-    // ── AddWildcardToConfig ──────────────────────────────────────────────────────
 
     [Fact]
     public async Task AddWildcard_Basic()
@@ -244,9 +237,9 @@ public class WriterTests : IAsyncLifetime
         await ConfigWriter.AddWildcardToConfigAsync(_configPath, "getsentry/skills", ct: CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Single(config.Skills);
-        var dep = Assert.IsType<WildcardSkillDependency>(config.Skills[0]);
-        Assert.Equal("getsentry/skills", dep.Source);
+        config.Skills.Should().ContainSingle();
+        var dep = config.Skills[0].Should().BeOfType<WildcardSkillDependency>().Which;
+        dep.Source.Should().Be("getsentry/skills");
     }
 
     [Fact]
@@ -255,7 +248,7 @@ public class WriterTests : IAsyncLifetime
         await ConfigWriter.AddWildcardToConfigAsync(_configPath, "getsentry/skills", "v1.0.0", ct: CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Equal("v1.0.0", config.Skills[0].Ref);
+        config.Skills[0].Ref.Should().Be("v1.0.0");
     }
 
     [Fact]
@@ -265,8 +258,8 @@ public class WriterTests : IAsyncLifetime
             exclude: ["deprecated-skill"], ct: CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        var dep = Assert.IsType<WildcardSkillDependency>(config.Skills[0]);
-        Assert.Equal(["deprecated-skill"], dep.Exclude);
+        var dep = config.Skills[0].Should().BeOfType<WildcardSkillDependency>().Which;
+        dep.Exclude.Should().BeEquivalentTo(["deprecated-skill"]);
     }
 
     [Fact]
@@ -276,12 +269,10 @@ public class WriterTests : IAsyncLifetime
         await ConfigWriter.AddSkillToConfigAsync(_configPath, "pdf", "anthropics/skills", ct: CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Equal(2, config.Skills.Count);
-        Assert.Contains(config.Skills, s => s is WildcardSkillDependency);
-        Assert.Contains(config.Skills.OfType<RegularSkillDependency>(), s => s.Name == "pdf");
+        config.Skills.Count.Should().Be(2);
+        config.Skills.Should().Contain(s => s is WildcardSkillDependency);
+        config.Skills.OfType<RegularSkillDependency>().Should().Contain(s => s.Name == "pdf");
     }
-
-    // ── AddExcludeToWildcard ─────────────────────────────────────────────────────
 
     [Fact]
     public async Task AddExclude_CreatesExcludeList()
@@ -290,8 +281,8 @@ public class WriterTests : IAsyncLifetime
         await ConfigWriter.AddExcludeToWildcardAsync(_configPath, "getsentry/skills", "deprecated", CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        var dep = Assert.IsType<WildcardSkillDependency>(config.Skills[0]);
-        Assert.Contains("deprecated", dep.Exclude);
+        var dep = config.Skills[0].Should().BeOfType<WildcardSkillDependency>().Which;
+        dep.Exclude.Should().Contain("deprecated");
     }
 
     [Fact]
@@ -302,9 +293,9 @@ public class WriterTests : IAsyncLifetime
         await ConfigWriter.AddExcludeToWildcardAsync(_configPath, "getsentry/skills", "another-skill", CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        var dep = Assert.IsType<WildcardSkillDependency>(config.Skills[0]);
-        Assert.Contains("old-skill", dep.Exclude);
-        Assert.Contains("another-skill", dep.Exclude);
+        var dep = config.Skills[0].Should().BeOfType<WildcardSkillDependency>().Which;
+        dep.Exclude.Should().Contain("old-skill");
+        dep.Exclude.Should().Contain("another-skill");
     }
 
     [Fact]
@@ -317,11 +308,9 @@ public class WriterTests : IAsyncLifetime
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
         var getsentry = config.Skills.OfType<WildcardSkillDependency>().First(s => s.Source == "getsentry/skills");
         var anthropics = config.Skills.OfType<WildcardSkillDependency>().First(s => s.Source == "anthropics/skills");
-        Assert.Contains("my-skill", getsentry.Exclude);
-        Assert.Empty(anthropics.Exclude);
+        getsentry.Exclude.Should().Contain("my-skill");
+        anthropics.Exclude.Should().BeEmpty();
     }
-
-    // ── AddMcpToConfig ───────────────────────────────────────────────────────────
 
     [Fact]
     public async Task AddMcp_StdioServer()
@@ -330,12 +319,12 @@ public class WriterTests : IAsyncLifetime
             "github", "npx", ["-y", "@modelcontextprotocol/server-github"], null, null, ["GITHUB_TOKEN"]), CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Single(config.Mcp);
+        config.Mcp.Should().ContainSingle();
         var mcp = config.Mcp[0];
-        Assert.Equal("github", mcp.Name);
-        Assert.Equal("npx", mcp.Command);
-        Assert.Equal(["-y", "@modelcontextprotocol/server-github"], mcp.Args);
-        Assert.Equal(["GITHUB_TOKEN"], mcp.Env);
+        mcp.Name.Should().Be("github");
+        mcp.Command.Should().Be("npx");
+        mcp.Args.Should().BeEquivalentTo(["-y", "@modelcontextprotocol/server-github"]);
+        mcp.Env.Should().BeEquivalentTo(["GITHUB_TOKEN"]);
     }
 
     [Fact]
@@ -346,12 +335,12 @@ public class WriterTests : IAsyncLifetime
             new Dictionary<string, string> { ["Authorization"] = "Bearer tok" }, []), CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Single(config.Mcp);
+        config.Mcp.Should().ContainSingle();
         var mcp = config.Mcp[0];
-        Assert.Equal("remote", mcp.Name);
-        Assert.Equal("https://mcp.example.com/sse", mcp.Url);
-        Assert.NotNull(mcp.Headers);
-        Assert.Equal("Bearer tok", mcp.Headers["Authorization"]);
+        mcp.Name.Should().Be("remote");
+        mcp.Url.Should().Be("https://mcp.example.com/sse");
+        mcp.Headers.Should().NotBeNull();
+        mcp.Headers!["Authorization"].Should().Be("Bearer tok");
     }
 
     [Fact]
@@ -362,10 +351,8 @@ public class WriterTests : IAsyncLifetime
             new McpConfig("b", null, null, "https://b.example.com", null, []), CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Equal(2, config.Mcp.Count);
+        config.Mcp.Count.Should().Be(2);
     }
-
-    // ── RemoveMcpFromConfig ──────────────────────────────────────────────────────
 
     [Fact]
     public async Task RemoveMcp_ExistingServer()
@@ -374,7 +361,7 @@ public class WriterTests : IAsyncLifetime
         await ConfigWriter.RemoveMcpFromConfigAsync(_configPath, "github", CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Empty(config.Mcp);
+        config.Mcp.Should().BeEmpty();
     }
 
     [Fact]
@@ -385,8 +372,8 @@ public class WriterTests : IAsyncLifetime
         await ConfigWriter.RemoveMcpFromConfigAsync(_configPath, "a", CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Single(config.Mcp);
-        Assert.Equal("b", config.Mcp[0].Name);
+        config.Mcp.Should().ContainSingle();
+        config.Mcp[0].Name.Should().Be("b");
     }
 
     [Fact]
@@ -395,7 +382,7 @@ public class WriterTests : IAsyncLifetime
         var before = await File.ReadAllTextAsync(_configPath, CT);
         await ConfigWriter.RemoveMcpFromConfigAsync(_configPath, "nope", CT);
         var after = await File.ReadAllTextAsync(_configPath, CT);
-        Assert.Equal(before, after);
+        after.Should().Be(before);
     }
 
     [Fact]
@@ -406,7 +393,7 @@ public class WriterTests : IAsyncLifetime
         await ConfigWriter.RemoveMcpFromConfigAsync(_configPath, "github", CT);
 
         var config = await ConfigLoader.LoadAsync(_configPath, CT);
-        Assert.Empty(config.Mcp);
-        Assert.Contains(config.Skills.OfType<RegularSkillDependency>(), s => s.Name == "github");
+        config.Mcp.Should().BeEmpty();
+        config.Skills.OfType<RegularSkillDependency>().Should().Contain(s => s.Name == "github");
     }
 }

@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using AwesomeAssertions;
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
 using Xunit;
@@ -50,16 +51,16 @@ public sealed class ParseHeaderTests
     public void SplitsOnFirstColon()
     {
         var (key, value) = McpCommand.ParseHeader("Authorization:Bearer tok");
-        Assert.Equal("Authorization", key);
-        Assert.Equal("Bearer tok", value);
+        key.Should().Be("Authorization");
+        value.Should().Be("Bearer tok");
     }
 
     [Fact]
     public void HandlesColonsInValue()
     {
         var (key, value) = McpCommand.ParseHeader("X-Key:val:ue");
-        Assert.Equal("X-Key", key);
-        Assert.Equal("val:ue", value);
+        key.Should().Be("X-Key");
+        value.Should().Be("val:ue");
     }
 
     [Theory]
@@ -98,11 +99,11 @@ public sealed class McpAddTests
             Env: ["GITHUB_TOKEN"]), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Single(config.Mcp);
-        Assert.Equal("github", config.Mcp[0].Name);
-        Assert.Equal("npx", config.Mcp[0].Command);
-        Assert.Equal(["-y", "@modelcontextprotocol/server-github"], config.Mcp[0].Args);
-        Assert.Equal(["GITHUB_TOKEN"], config.Mcp[0].Env);
+        config.Mcp.Should().ContainSingle();
+        config.Mcp[0].Name.Should().Be("github");
+        config.Mcp[0].Command.Should().Be("npx");
+        config.Mcp[0].Args.Should().BeEquivalentTo(["-y", "@modelcontextprotocol/server-github"]);
+        config.Mcp[0].Env.Should().BeEquivalentTo(["GITHUB_TOKEN"]);
     }
 
     [Fact]
@@ -116,8 +117,8 @@ public sealed class McpAddTests
             Headers: ["Authorization:Bearer tok"], Env: ["API_KEY"]), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Single(config.Mcp);
-        Assert.Equal("https://mcp.example.com/sse", config.Mcp[0].Url);
+        config.Mcp.Should().ContainSingle();
+        config.Mcp[0].Url.Should().Be("https://mcp.example.com/sse");
     }
 
     [Fact]
@@ -129,7 +130,7 @@ public sealed class McpAddTests
         await McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "github", "npx"), CT);
         var ex = await Assert.ThrowsAsync<McpException>(() =>
             McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "github", "other"), CT));
-        Assert.Contains("already exists", ex.Message);
+        ex.Message.Should().Contain("already exists");
     }
 
     [Fact]
@@ -140,7 +141,7 @@ public sealed class McpAddTests
 
         var ex = await Assert.ThrowsAsync<McpException>(() => McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(
             scope, "bad", "npx", Url: "https://example.com"), CT));
-        Assert.Contains("Cannot specify both", ex.Message);
+        ex.Message.Should().Contain("Cannot specify both");
     }
 
     [Fact]
@@ -151,7 +152,7 @@ public sealed class McpAddTests
 
         var ex = await Assert.ThrowsAsync<McpException>(() =>
             McpCommand.RunMcpAddAsync(new McpCommand.McpAddOptions(scope, "bad"), CT));
-        Assert.Contains("Must specify either", ex.Message);
+        ex.Message.Should().Contain("Must specify either");
     }
 
     [Fact]
@@ -190,7 +191,7 @@ public sealed class McpRemoveTests
         await McpCommand.RunMcpRemoveAsync(new McpCommand.McpRemoveOptions(scope, "github"), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Empty(config.Mcp);
+        config.Mcp.Should().BeEmpty();
     }
 
     [Fact]
@@ -201,7 +202,7 @@ public sealed class McpRemoveTests
 
         var ex = await Assert.ThrowsAsync<McpException>(() =>
             McpCommand.RunMcpRemoveAsync(new McpCommand.McpRemoveOptions(scope, "nope"), CT));
-        Assert.Contains("not found", ex.Message);
+        ex.Message.Should().Contain("not found");
     }
 
     [Fact]
@@ -215,8 +216,8 @@ public sealed class McpRemoveTests
         await McpCommand.RunMcpRemoveAsync(new McpCommand.McpRemoveOptions(scope, "a"), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Single(config.Mcp);
-        Assert.Equal("b", config.Mcp[0].Name);
+        config.Mcp.Should().ContainSingle();
+        config.Mcp[0].Name.Should().Be("b");
     }
 }
 
@@ -241,7 +242,7 @@ public sealed class GetMcpListTests
         using var tmp = new TempDir();
         var scope = SetupScope(tmp.Path);
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Empty(McpCommand.GetMcpList(config));
+        McpCommand.GetMcpList(config).Should().BeEmpty();
     }
 
     [Fact]
@@ -254,11 +255,11 @@ public sealed class GetMcpListTests
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
         var list = McpCommand.GetMcpList(config);
-        Assert.Single(list);
-        Assert.Equal("github", list[0].Name);
-        Assert.Equal("stdio", list[0].Transport);
-        Assert.Equal("npx", list[0].Target);
-        Assert.Equal(["TOKEN"], list[0].Env);
+        list.Should().ContainSingle();
+        list[0].Name.Should().Be("github");
+        list[0].Transport.Should().Be("stdio");
+        list[0].Target.Should().Be("npx");
+        list[0].Env.Should().BeEquivalentTo(["TOKEN"]);
     }
 
     [Fact]
@@ -271,9 +272,9 @@ public sealed class GetMcpListTests
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
         var list = McpCommand.GetMcpList(config);
-        Assert.Single(list);
-        Assert.Equal("remote", list[0].Name);
-        Assert.Equal("http", list[0].Transport);
-        Assert.Equal("https://example.com/mcp", list[0].Target);
+        list.Should().ContainSingle();
+        list[0].Name.Should().Be("remote");
+        list[0].Transport.Should().Be("http");
+        list[0].Target.Should().Be("https://example.com/mcp");
     }
 }

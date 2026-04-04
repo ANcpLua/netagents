@@ -1,12 +1,12 @@
 namespace NetAgents.Tests.Skills;
 
+using AwesomeAssertions;
 using NetAgents.Skills;
 using Xunit;
 
 public class DiscoverSkillTests : IAsyncLifetime
 {
     private string _repoDir = null!;
-
     private CancellationToken CT => TestContext.Current.CancellationToken;
 
     public async ValueTask InitializeAsync()
@@ -18,15 +18,12 @@ public class DiscoverSkillTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_repoDir))
-            Directory.Delete(_repoDir, true);
+        if (Directory.Exists(_repoDir)) Directory.Delete(_repoDir, true);
         await ValueTask.CompletedTask;
     }
 
-    private static string SkillMd(string name)
-    {
-        return $"---\nname: {name}\ndescription: Test skill {name}\n---\n\n# {name}\n";
-    }
+    private static string SkillMd(string name) =>
+        $"---\nname: {name}\ndescription: Test skill {name}\n---\n\n# {name}\n";
 
     private async Task WriteSkillAsync(string relativePath, string name)
     {
@@ -39,45 +36,37 @@ public class DiscoverSkillTests : IAsyncLifetime
     public async Task FindsSkillAtRootLevel()
     {
         await WriteSkillAsync("pdf", "pdf");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "pdf", CT);
-
-        Assert.NotNull(result);
-        Assert.Equal("pdf", result.Path);
-        Assert.Equal("pdf", result.Meta.Name);
+        result.Should().NotBeNull();
+        result!.Path.Should().Be("pdf");
+        result.Meta.Name.Should().Be("pdf");
     }
 
     [Fact]
     public async Task FindsSkillInSkillsDirectory()
     {
         await WriteSkillAsync("skills/review", "review");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "review", CT);
-
-        Assert.NotNull(result);
-        Assert.Equal("skills/review", result.Path);
+        result.Should().NotBeNull();
+        result!.Path.Should().Be("skills/review");
     }
 
     [Fact]
     public async Task FindsSkillInAgentsSkillsDirectory()
     {
         await WriteSkillAsync(".agents/skills/lint", "lint");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "lint", CT);
-
-        Assert.NotNull(result);
-        Assert.Equal(".agents/skills/lint", result.Path);
+        result.Should().NotBeNull();
+        result!.Path.Should().Be(".agents/skills/lint");
     }
 
     [Fact]
     public async Task FindsSkillInClaudeSkillsDirectory()
     {
         await WriteSkillAsync(".claude/skills/commit", "commit");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "commit", CT);
-
-        Assert.NotNull(result);
-        Assert.Equal(".claude/skills/commit", result.Path);
+        result.Should().NotBeNull();
+        result!.Path.Should().Be(".claude/skills/commit");
     }
 
     [Fact]
@@ -85,22 +74,18 @@ public class DiscoverSkillTests : IAsyncLifetime
     {
         await WriteSkillAsync("pdf", "pdf");
         await WriteSkillAsync("skills/pdf", "pdf");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "pdf", CT);
-
-        Assert.Equal("pdf", result!.Path);
+        result!.Path.Should().Be("pdf");
     }
 
     [Fact]
     public async Task FindsSkillByFrontmatterNameWhenDirectoryNameDiffers()
     {
         await WriteSkillAsync("skills/chat", "chat-sdk");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "chat-sdk", CT);
-
-        Assert.NotNull(result);
-        Assert.Equal("skills/chat", result.Path);
-        Assert.Equal("chat-sdk", result.Meta.Name);
+        result.Should().NotBeNull();
+        result!.Path.Should().Be("skills/chat");
+        result.Meta.Name.Should().Be("chat-sdk");
     }
 
     [Fact]
@@ -108,46 +93,36 @@ public class DiscoverSkillTests : IAsyncLifetime
     {
         await WriteSkillAsync("skills/my-skill", "my-skill");
         await WriteSkillAsync("skills/other", "my-skill");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "my-skill", CT);
-
-        Assert.Equal("skills/my-skill", result!.Path);
+        result!.Path.Should().Be("skills/my-skill");
     }
 
     [Fact]
     public async Task PrefersHigherPriorityScanDirFrontmatterMatch()
     {
-        // Root-level: ./chat/SKILL.md with name: "chat-sdk" (frontmatter match)
         await WriteSkillAsync("chat", "chat-sdk");
-        // skills/: skills/chat-sdk/SKILL.md (dir name match, but lower priority scan dir)
         await WriteSkillAsync("skills/chat-sdk", "chat-sdk");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "chat-sdk", CT);
-
-        Assert.Equal("chat", result!.Path);
+        result!.Path.Should().Be("chat");
     }
 
     [Fact]
     public async Task FindsSkillNestedInCategorySubdirectory()
     {
         await WriteSkillAsync("skills/.curated/pdf", "pdf");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "pdf", CT);
-
-        Assert.NotNull(result);
-        Assert.Equal("skills/.curated/pdf", result.Path);
-        Assert.Equal("pdf", result.Meta.Name);
+        result.Should().NotBeNull();
+        result!.Path.Should().Be("skills/.curated/pdf");
+        result.Meta.Name.Should().Be("pdf");
     }
 
     [Fact]
     public async Task FindsSkillNestedMultipleLevelsDeep()
     {
         await WriteSkillAsync("skills/org/team/deploy", "deploy");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "deploy", CT);
-
-        Assert.NotNull(result);
-        Assert.Equal("skills/org/team/deploy", result.Path);
+        result.Should().NotBeNull();
+        result!.Path.Should().Be("skills/org/team/deploy");
     }
 
     [Fact]
@@ -155,22 +130,18 @@ public class DiscoverSkillTests : IAsyncLifetime
     {
         await WriteSkillAsync("skills/pdf", "pdf");
         await WriteSkillAsync("skills/.curated/pdf", "pdf");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "pdf", CT);
-
-        Assert.Equal("skills/pdf", result!.Path);
+        result!.Path.Should().Be("skills/pdf");
     }
 
     [Fact]
     public async Task FindsSkillByFrontmatterNameInNestedCategoryDirectory()
     {
         await WriteSkillAsync("skills/experimental/chat", "chat-sdk");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "chat-sdk", CT);
-
-        Assert.NotNull(result);
-        Assert.Equal("skills/experimental/chat", result.Path);
-        Assert.Equal("chat-sdk", result.Meta.Name);
+        result.Should().NotBeNull();
+        result!.Path.Should().Be("skills/experimental/chat");
+        result.Meta.Name.Should().Be("chat-sdk");
     }
 
     [Fact]
@@ -178,25 +149,21 @@ public class DiscoverSkillTests : IAsyncLifetime
     {
         await WriteSkillAsync("skills/outer", "outer");
         await WriteSkillAsync("skills/outer/nested", "nested");
-
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "nested", CT);
-
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     [Fact]
     public async Task ReturnsNullWhenSkillNotFound()
     {
         var result = await SkillDiscovery.DiscoverSkillAsync(_repoDir, "nonexistent", CT);
-
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 }
 
 public class DiscoverAllSkillsTests : IAsyncLifetime
 {
     private string _repoDir = null!;
-
     private CancellationToken CT => TestContext.Current.CancellationToken;
 
     public async ValueTask InitializeAsync()
@@ -208,15 +175,12 @@ public class DiscoverAllSkillsTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_repoDir))
-            Directory.Delete(_repoDir, true);
+        if (Directory.Exists(_repoDir)) Directory.Delete(_repoDir, true);
         await ValueTask.CompletedTask;
     }
 
-    private static string SkillMd(string name)
-    {
-        return $"---\nname: {name}\ndescription: Test skill {name}\n---\n\n# {name}\n";
-    }
+    private static string SkillMd(string name) =>
+        $"---\nname: {name}\ndescription: Test skill {name}\n---\n\n# {name}\n";
 
     private async Task WriteSkillAsync(string relativePath, string name)
     {
@@ -230,20 +194,17 @@ public class DiscoverAllSkillsTests : IAsyncLifetime
     {
         await WriteSkillAsync("pdf", "pdf");
         await WriteSkillAsync("skills/review", "review");
-
         var results = await SkillDiscovery.DiscoverAllSkillsAsync(_repoDir, CT);
-
-        Assert.Equal(2, results.Count);
+        results.Count.Should().Be(2);
         var names = results.Select(r => r.Meta.Name).Order().ToList();
-        Assert.Equal(["pdf", "review"], names);
+        names.Should().BeEquivalentTo(["pdf", "review"]);
     }
 
     [Fact]
     public async Task ReturnsEmptyForRepoWithNoSkills()
     {
         var results = await SkillDiscovery.DiscoverAllSkillsAsync(_repoDir, CT);
-
-        Assert.Empty(results);
+        results.Should().BeEmpty();
     }
 
     [Fact]
@@ -252,10 +213,8 @@ public class DiscoverAllSkillsTests : IAsyncLifetime
         var dir = Path.Combine(_repoDir, "not-a-skill");
         Directory.CreateDirectory(dir);
         await File.WriteAllTextAsync(Path.Combine(dir, "README.md"), "# Not a skill", CT);
-
         var results = await SkillDiscovery.DiscoverAllSkillsAsync(_repoDir, CT);
-
-        Assert.Empty(results);
+        results.Should().BeEmpty();
     }
 
     [Fact]
@@ -264,13 +223,11 @@ public class DiscoverAllSkillsTests : IAsyncLifetime
         await WriteSkillAsync("skills/.curated/pdf", "pdf");
         await WriteSkillAsync("skills/.curated/sentry", "sentry");
         await WriteSkillAsync("skills/review", "review");
-
         var results = await SkillDiscovery.DiscoverAllSkillsAsync(_repoDir, CT);
-
-        Assert.Equal(3, results.Count);
+        results.Count.Should().Be(3);
         var names = results.Select(r => r.Meta.Name).Order().ToList();
-        Assert.Equal(["pdf", "review", "sentry"], names);
-        Assert.Equal("skills/.curated/pdf", results.First(r => r.Meta.Name == "pdf").Path);
+        names.Should().BeEquivalentTo(["pdf", "review", "sentry"]);
+        results.First(r => r.Meta.Name == "pdf").Path.Should().Be("skills/.curated/pdf");
     }
 
     [Fact]
@@ -278,11 +235,9 @@ public class DiscoverAllSkillsTests : IAsyncLifetime
     {
         await WriteSkillAsync("skills/outer", "outer");
         await WriteSkillAsync("skills/outer/nested", "nested");
-
         var results = await SkillDiscovery.DiscoverAllSkillsAsync(_repoDir, CT);
-
-        Assert.Single(results);
-        Assert.Equal("outer", results[0].Meta.Name);
+        results.Should().ContainSingle();
+        results[0].Meta.Name.Should().Be("outer");
     }
 
     [Fact]
@@ -291,13 +246,10 @@ public class DiscoverAllSkillsTests : IAsyncLifetime
         Directory.CreateDirectory(Path.Combine(_repoDir, ".claude-plugin"));
         await WriteSkillAsync("plugins/my-plugin/skills/find-bugs", "find-bugs");
         await WriteSkillAsync("plugins/my-plugin/skills/code-review", "code-review");
-
         var results = await SkillDiscovery.DiscoverAllSkillsAsync(_repoDir, CT);
-
-        Assert.Equal(2, results.Count);
+        results.Count.Should().Be(2);
         var names = results.Select(r => r.Meta.Name).Order().ToList();
-        Assert.Equal(["code-review", "find-bugs"], names);
-        Assert.Equal("plugins/my-plugin/skills/find-bugs",
-            results.First(r => r.Meta.Name == "find-bugs").Path);
+        names.Should().BeEquivalentTo(["code-review", "find-bugs"]);
+        results.First(r => r.Meta.Name == "find-bugs").Path.Should().Be("plugins/my-plugin/skills/find-bugs");
     }
 }

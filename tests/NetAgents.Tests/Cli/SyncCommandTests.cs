@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using AwesomeAssertions;
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
 using NetAgents.Lockfile;
@@ -44,17 +45,17 @@ public sealed class SyncCommandTests
 
         var result = await SyncCommand.RunSyncAsync(new SyncOptions(scope), CT);
 
-        Assert.Equal(["orphan"], result.Adopted);
-        Assert.Empty(result.Issues);
+        result.Adopted.Should().BeEquivalentTo(["orphan"]);
+        result.Issues.Should().BeEmpty();
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
         var skill = config.Skills.OfType<RegularSkillDependency>().FirstOrDefault(s => s.Name == "orphan");
-        Assert.NotNull(skill);
-        Assert.Equal("path:.agents/skills/orphan", skill.Source);
+        skill.Should().NotBeNull();
+        skill!.Source.Should().Be("path:.agents/skills/orphan");
 
         var lockfile = await LockfileLoader.LoadAsync(scope.LockPath, CT);
-        Assert.NotNull(lockfile);
-        Assert.True(lockfile.Skills.ContainsKey("orphan"));
+        lockfile.Should().NotBeNull();
+        lockfile!.Skills.ContainsKey("orphan").Should().BeTrue();
     }
 
     [Fact]
@@ -74,9 +75,9 @@ public sealed class SyncCommandTests
 
         var result = await SyncCommand.RunSyncAsync(new SyncOptions(scope), CT);
 
-        Assert.Equal(2, result.Adopted.Count);
-        Assert.Contains("alpha", result.Adopted);
-        Assert.Contains("beta", result.Adopted);
+        result.Adopted.Count.Should().Be(2);
+        result.Adopted.Should().Contain("alpha");
+        result.Adopted.Should().Contain("beta");
     }
 
     [Fact]
@@ -91,8 +92,8 @@ public sealed class SyncCommandTests
         var result = await SyncCommand.RunSyncAsync(new SyncOptions(scope), CT);
 
         var missing = result.Issues.Where(i => i.Type == "missing").ToList();
-        Assert.Single(missing);
-        Assert.Equal("pdf", missing[0].Name);
+        missing.Should().ContainSingle();
+        missing[0].Name.Should().Be("pdf");
     }
 
     [Fact]
@@ -114,7 +115,7 @@ public sealed class SyncCommandTests
 
         var result = await SyncCommand.RunSyncAsync(new SyncOptions(scope), CT);
 
-        Assert.Empty(result.Issues);
+        result.Issues.Should().BeEmpty();
     }
 
     [Fact]
@@ -129,7 +130,7 @@ public sealed class SyncCommandTests
 
         var result = await SyncCommand.RunSyncAsync(new SyncOptions(scope), CT);
 
-        Assert.Equal(1, result.SymlinksRepaired);
+        result.SymlinksRepaired.Should().Be(1);
     }
 
     [Fact]
@@ -143,9 +144,9 @@ public sealed class SyncCommandTests
 
         var result = await SyncCommand.RunSyncAsync(new SyncOptions(scope), CT);
 
-        Assert.True(result.GitignoreUpdated);
+        result.GitignoreUpdated.Should().BeTrue();
         var gitignore = await File.ReadAllTextAsync(Path.Combine(tmp.Path, ".agents", ".gitignore"), CT);
-        Assert.Contains("/skills/pdf/", gitignore);
+        gitignore.Should().Contain("/skills/pdf/");
     }
 
     [Fact]
@@ -159,8 +160,8 @@ public sealed class SyncCommandTests
 
         var result = await SyncCommand.RunSyncAsync(new SyncOptions(scope), CT);
 
-        Assert.True(result.McpRepaired > 0);
-        Assert.True(File.Exists(Path.Combine(tmp.Path, ".mcp.json")));
+        (result.McpRepaired > 0).Should().BeTrue();
+        File.Exists(Path.Combine(tmp.Path, ".mcp.json")).Should().BeTrue();
     }
 
     [Fact]
@@ -174,8 +175,8 @@ public sealed class SyncCommandTests
 
         var result = await SyncCommand.RunSyncAsync(new SyncOptions(scope), CT);
 
-        Assert.True(result.HooksRepaired > 0);
-        Assert.True(File.Exists(Path.Combine(tmp.Path, ".claude", "settings.json")));
+        (result.HooksRepaired > 0).Should().BeTrue();
+        File.Exists(Path.Combine(tmp.Path, ".claude", "settings.json")).Should().BeTrue();
     }
 
     [Fact]
@@ -190,7 +191,7 @@ public sealed class SyncCommandTests
         await SyncCommand.RunSyncAsync(new SyncOptions(scope), CT);
         var result = await SyncCommand.RunSyncAsync(new SyncOptions(scope), CT);
 
-        Assert.Equal(0, result.HooksRepaired);
-        Assert.DoesNotContain(result.Issues, i => i.Type == "hooks");
+        result.HooksRepaired.Should().Be(0);
+        result.Issues.Should().NotContain(i => i.Type == "hooks");
     }
 }

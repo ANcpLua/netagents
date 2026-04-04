@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using AwesomeAssertions;
 using NetAgents.Cli.Commands;
 using NetAgents.Lockfile;
 using Xunit;
@@ -40,7 +41,7 @@ public sealed class ListCommandTests
 
         var results = await ListCommand.RunListAsync(new ListOptions(scope), CT);
 
-        Assert.Empty(results);
+        results.Should().BeEmpty();
     }
 
     [Fact]
@@ -54,8 +55,8 @@ public sealed class ListCommandTests
 
         var results = await ListCommand.RunListAsync(new ListOptions(scope), CT);
 
-        Assert.Single(results);
-        Assert.Equal("missing", results[0].Status);
+        results.Should().ContainSingle();
+        results[0].Status.Should().Be("missing");
     }
 
     [Fact]
@@ -72,8 +73,8 @@ public sealed class ListCommandTests
 
         var results = await ListCommand.RunListAsync(new ListOptions(scope), CT);
 
-        Assert.Single(results);
-        Assert.Equal("unlocked", results[0].Status);
+        results.Should().ContainSingle();
+        results[0].Status.Should().Be("unlocked");
     }
 
     [Fact]
@@ -96,8 +97,8 @@ public sealed class ListCommandTests
 
         var results = await ListCommand.RunListAsync(new ListOptions(scope), CT);
 
-        Assert.Single(results);
-        Assert.Equal("ok", results[0].Status);
+        results.Should().ContainSingle();
+        results[0].Status.Should().Be("ok");
     }
 
     [Fact]
@@ -111,8 +112,8 @@ public sealed class ListCommandTests
 
         var results = await ListCommand.RunListAsync(new ListOptions(scope), CT);
 
-        Assert.Equal("a-skill", results[0].Name);
-        Assert.Equal("z-skill", results[1].Name);
+        results[0].Name.Should().Be("a-skill");
+        results[1].Name.Should().Be("z-skill");
     }
 
     [Fact]
@@ -140,8 +141,8 @@ public sealed class ListCommandTests
 
         var results = await ListCommand.RunListAsync(new ListOptions(scope), CT);
 
-        Assert.Equal(2, results.Count);
-        Assert.All(results, r => Assert.Equal("org/repo", r.Wildcard));
+        results.Count.Should().Be(2);
+        results.Should().OnlyContain(r => r.Wildcard == "org/repo");
     }
 
     [Fact]
@@ -166,7 +167,7 @@ public sealed class ListCommandTests
 
         var results = await ListCommand.RunListAsync(new ListOptions(scope), CT);
 
-        Assert.Single(results);
-        Assert.Equal("pdf", results[0].Name);
+        results.Should().ContainSingle();
+        results[0].Name.Should().Be("pdf");
     }
 }

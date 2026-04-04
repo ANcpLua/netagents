@@ -1,5 +1,6 @@
 namespace NetAgents.Tests;
 
+using AwesomeAssertions;
 using Xunit;
 
 /// Shared temp-dir lifetime for test classes that need a disposable directory.
@@ -40,12 +41,12 @@ public sealed class ResolveScopeTests : IDisposable
     {
         var s = ScopeResolver.ResolveScope(ScopeKind.Project, "/tmp/my-project");
 
-        Assert.Equal(ScopeKind.Project, s.Scope);
-        Assert.Equal("/tmp/my-project", s.Root);
-        Assert.Equal(Path.Combine("/tmp/my-project", ".agents"), s.AgentsDir);
-        Assert.Equal(Path.Combine("/tmp/my-project", "agents.toml"), s.ConfigPath);
-        Assert.Equal(Path.Combine("/tmp/my-project", "agents.lock"), s.LockPath);
-        Assert.Equal(Path.Combine("/tmp/my-project", ".agents", "skills"), s.SkillsDir);
+        s.Scope.Should().Be(ScopeKind.Project);
+        s.Root.Should().Be("/tmp/my-project");
+        s.AgentsDir.Should().Be(Path.Combine("/tmp/my-project", ".agents"));
+        s.ConfigPath.Should().Be(Path.Combine("/tmp/my-project", "agents.toml"));
+        s.LockPath.Should().Be(Path.Combine("/tmp/my-project", "agents.lock"));
+        s.SkillsDir.Should().Be(Path.Combine("/tmp/my-project", ".agents", "skills"));
     }
 
     [Fact]
@@ -56,12 +57,12 @@ public sealed class ResolveScopeTests : IDisposable
 
         var s = ScopeResolver.ResolveScope(ScopeKind.User);
 
-        Assert.Equal(ScopeKind.User, s.Scope);
-        Assert.Equal(expected, s.Root);
-        Assert.Equal(expected, s.AgentsDir);
-        Assert.Equal(Path.Combine(expected, "agents.toml"), s.ConfigPath);
-        Assert.Equal(Path.Combine(expected, "agents.lock"), s.LockPath);
-        Assert.Equal(Path.Combine(expected, "skills"), s.SkillsDir);
+        s.Scope.Should().Be(ScopeKind.User);
+        s.Root.Should().Be(expected);
+        s.AgentsDir.Should().Be(expected);
+        s.ConfigPath.Should().Be(Path.Combine(expected, "agents.toml"));
+        s.LockPath.Should().Be(Path.Combine(expected, "agents.lock"));
+        s.SkillsDir.Should().Be(Path.Combine(expected, "skills"));
     }
 
     [Fact]
@@ -70,9 +71,9 @@ public sealed class ResolveScopeTests : IDisposable
         Environment.SetEnvironmentVariable("NETAGENTS_HOME", "/tmp/fake-home");
         var s = ScopeResolver.ResolveScope(ScopeKind.User);
 
-        Assert.Equal("/tmp/fake-home", s.Root);
-        Assert.Equal("/tmp/fake-home", s.AgentsDir);
-        Assert.Equal(Path.Combine("/tmp/fake-home", "skills"), s.SkillsDir);
+        s.Root.Should().Be("/tmp/fake-home");
+        s.AgentsDir.Should().Be("/tmp/fake-home");
+        s.SkillsDir.Should().Be(Path.Combine("/tmp/fake-home", "skills"));
     }
 
     [Fact]
@@ -81,7 +82,7 @@ public sealed class ResolveScopeTests : IDisposable
         Environment.SetEnvironmentVariable("NETAGENTS_HOME", "/tmp/user-agents");
         var s = ScopeResolver.ResolveScope(ScopeKind.User);
 
-        Assert.Equal(s.Root, s.AgentsDir);
+        s.AgentsDir.Should().Be(s.Root);
     }
 
     [Fact]
@@ -89,7 +90,7 @@ public sealed class ResolveScopeTests : IDisposable
     {
         var s = ScopeResolver.ResolveScope(ScopeKind.Project);
 
-        Assert.Equal(Directory.GetCurrentDirectory(), s.Root);
+        s.Root.Should().Be(Directory.GetCurrentDirectory());
     }
 }
 
@@ -103,7 +104,7 @@ public sealed class IsInsideGitRepoTests
         using var tmp = new TempDir();
         Directory.CreateDirectory(tmp.Sub(".git"));
 
-        Assert.True(ScopeResolver.IsInsideGitRepo(tmp.Path));
+        ScopeResolver.IsInsideGitRepo(tmp.Path).Should().BeTrue();
     }
 
     [Fact]
@@ -114,7 +115,7 @@ public sealed class IsInsideGitRepoTests
         var child = tmp.Sub("sub", "deep");
         Directory.CreateDirectory(child);
 
-        Assert.True(ScopeResolver.IsInsideGitRepo(child));
+        ScopeResolver.IsInsideGitRepo(child).Should().BeTrue();
     }
 
     [Fact]
@@ -122,7 +123,7 @@ public sealed class IsInsideGitRepoTests
     {
         using var tmp = new TempDir();
 
-        Assert.False(ScopeResolver.IsInsideGitRepo(tmp.Path));
+        ScopeResolver.IsInsideGitRepo(tmp.Path).Should().BeFalse();
     }
 }
 
@@ -136,7 +137,7 @@ public sealed class FindGitDirTests
         using var tmp = new TempDir();
         Directory.CreateDirectory(tmp.Sub(".git"));
 
-        Assert.Equal(tmp.Sub(".git"), ScopeResolver.FindGitDir(tmp.Path));
+        ScopeResolver.FindGitDir(tmp.Path).Should().Be(tmp.Sub(".git"));
     }
 
     [Fact]
@@ -147,7 +148,7 @@ public sealed class FindGitDirTests
         Directory.CreateDirectory(realGitDir);
         File.WriteAllText(tmp.Sub(".git"), $"gitdir: {realGitDir}\n");
 
-        Assert.Equal(realGitDir, ScopeResolver.FindGitDir(tmp.Path));
+        ScopeResolver.FindGitDir(tmp.Path).Should().Be(realGitDir);
     }
 
     [Fact]
@@ -163,7 +164,7 @@ public sealed class FindGitDirTests
         Directory.CreateDirectory(worktreeDir);
         File.WriteAllText(Path.Combine(worktreeDir, ".git"), $"gitdir: {worktreeGitDir}\n");
 
-        Assert.Equal(mainGitDir, ScopeResolver.FindGitDir(worktreeDir));
+        ScopeResolver.FindGitDir(worktreeDir).Should().Be(mainGitDir);
     }
 
     [Fact]
@@ -172,7 +173,7 @@ public sealed class FindGitDirTests
         using var tmp = new TempDir();
         File.WriteAllText(tmp.Sub(".git"), "gitdir: /nonexistent/path\n");
 
-        Assert.Null(ScopeResolver.FindGitDir(tmp.Path));
+        ScopeResolver.FindGitDir(tmp.Path).Should().BeNull();
     }
 
     [Fact]
@@ -180,7 +181,7 @@ public sealed class FindGitDirTests
     {
         using var tmp = new TempDir();
 
-        Assert.Null(ScopeResolver.FindGitDir(tmp.Path));
+        ScopeResolver.FindGitDir(tmp.Path).Should().BeNull();
     }
 }
 
@@ -203,8 +204,8 @@ public sealed class ResolveDefaultScopeTests : IDisposable
 
         var s = ScopeResolver.ResolveDefaultScope(tmp.Path);
 
-        Assert.Equal(ScopeKind.Project, s.Scope);
-        Assert.Equal(tmp.Path, s.Root);
+        s.Scope.Should().Be(ScopeKind.Project);
+        s.Root.Should().Be(tmp.Path);
     }
 
     [Fact]
@@ -219,8 +220,8 @@ public sealed class ResolveDefaultScopeTests : IDisposable
         try
         {
             var s = ScopeResolver.ResolveDefaultScope(tmp.Path);
-            Assert.Equal(ScopeKind.User, s.Scope);
-            Assert.Contains("user scope", stderr.ToString());
+            s.Scope.Should().Be(ScopeKind.User);
+            stderr.ToString().Should().Contain("user scope");
         }
         finally
         {
@@ -235,6 +236,6 @@ public sealed class ResolveDefaultScopeTests : IDisposable
         Directory.CreateDirectory(tmp.Sub(".git"));
 
         var ex = Assert.Throws<ScopeException>(() => ScopeResolver.ResolveDefaultScope(tmp.Path));
-        Assert.Contains("netagents init", ex.Message);
+        ex.Message.Should().Contain("netagents init");
     }
 }

@@ -3,6 +3,7 @@ namespace Qyl.Agents.Tests;
 using System.Diagnostics;
 using System.Text.Json;
 using ANcpLua.Roslyn.Utilities.Testing.AgentTesting;
+using AwesomeAssertions;
 using Protocol;
 using Xunit;
 
@@ -22,12 +23,12 @@ public sealed class McpProtocolEndToEndTests
         var request = MakeRequest("initialize");
         var response = await _handler.HandleAsync(request, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(response);
-        Assert.Null(response!.Error);
-        Assert.NotNull(response.Result);
+        response.Should().NotBeNull();
+        response!.Error.Should().BeNull();
+        response.Result.Should().NotBeNull();
 
-        var serverInfo = response.Result.Value.GetProperty("serverInfo");
-        Assert.Equal((string?)"calc-server", (string?)serverInfo.GetProperty("name").GetString());
+        var serverInfo = response.Result!.Value.GetProperty("serverInfo");
+        serverInfo.GetProperty("name").GetString().Should().Be("calc-server");
     }
 
     [Fact]
@@ -36,17 +37,17 @@ public sealed class McpProtocolEndToEndTests
         var request = MakeRequest("tools/list");
         var response = await _handler.HandleAsync(request, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(response);
+        response.Should().NotBeNull();
         var tools = response!.Result!.Value.GetProperty("tools");
-        Assert.Equal(3, tools.GetArrayLength());
+        tools.GetArrayLength().Should().Be(3);
 
         var toolNames = tools.EnumerateArray()
             .Select(t => t.GetProperty("name").GetString()!)
             .OrderBy(n => n)
             .ToList();
-        Assert.Contains("add", toolNames);
-        Assert.Contains("multiply", toolNames);
-        Assert.Contains("fail", toolNames);
+        toolNames.Should().Contain("add");
+        toolNames.Should().Contain("multiply");
+        toolNames.Should().Contain("fail");
     }
 
     [Fact]
@@ -56,12 +57,12 @@ public sealed class McpProtocolEndToEndTests
         var request = MakeToolCallRequest("add", args);
         var response = await _handler.HandleAsync(request, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(response);
-        Assert.Null(response!.Error);
+        response.Should().NotBeNull();
+        response!.Error.Should().BeNull();
 
         var content = response.Result!.Value.GetProperty("content");
         var text = content[0].GetProperty("text").GetString();
-        Assert.Equal((string?)"7", (string?)text);
+        text.Should().Be("7");
     }
 
     [Fact]
@@ -71,10 +72,10 @@ public sealed class McpProtocolEndToEndTests
         var request = MakeToolCallRequest("multiply", args);
         var response = await _handler.HandleAsync(request, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(response);
+        response.Should().NotBeNull();
         var content = response!.Result!.Value.GetProperty("content");
         var text = content[0].GetProperty("text").GetString();
-        Assert.Equal((string?)"30", (string?)text);
+        text.Should().Be("30");
     }
 
     [Fact]
@@ -84,10 +85,9 @@ public sealed class McpProtocolEndToEndTests
         var request = MakeToolCallRequest("nonexistent", args);
         var response = await _handler.HandleAsync(request, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(response);
-        // Unknown tools throw ArgumentException, which the protocol handler maps to a JSON-RPC error
-        Assert.NotNull(response!.Error);
-        Assert.Equal(McpErrorCodes.InvalidParams, response.Error!.Code);
+        response.Should().NotBeNull();
+        response!.Error.Should().NotBeNull();
+        response.Error!.Code.Should().Be(McpErrorCodes.InvalidParams);
     }
 
     [Fact]
@@ -111,19 +111,14 @@ public sealed class McpProtocolEndToEndTests
     {
         var skillMd = CalcServer.SkillMd;
 
-        // YAML frontmatter structure
-        Assert.Contains("---", skillMd);
-        Assert.Contains("name: calc-server", skillMd);
-
-        // Tool sections
-        Assert.Contains("### add", skillMd);
-        Assert.Contains("### multiply", skillMd);
-
-        // Parameter docs
-        Assert.Contains("`a` (integer, required): First number", skillMd);
-        Assert.Contains("`b` (integer, required): Second number", skillMd);
-        Assert.Contains("`a` (integer, required): First factor", skillMd);
-        Assert.Contains("`b` (integer, required): Second factor", skillMd);
+        skillMd.Should().Contain("---");
+        skillMd.Should().Contain("name: calc-server");
+        skillMd.Should().Contain("### add");
+        skillMd.Should().Contain("### multiply");
+        skillMd.Should().Contain("`a` (integer, required): First number");
+        skillMd.Should().Contain("`b` (integer, required): Second number");
+        skillMd.Should().Contain("`a` (integer, required): First factor");
+        skillMd.Should().Contain("`b` (integer, required): Second factor");
     }
 
     [Fact]
@@ -131,7 +126,7 @@ public sealed class McpProtocolEndToEndTests
     {
         var request = new JsonRpcRequest { Method = "notifications/initialized" };
         var response = await _handler.HandleAsync(request, CancellationToken.None);
-        Assert.Null(response);
+        response.Should().BeNull();
     }
 
     [Fact]
@@ -144,7 +139,7 @@ public sealed class McpProtocolEndToEndTests
 
         var json1 = response1!.Result!.Value.GetRawText();
         var json2 = response2!.Result!.Value.GetRawText();
-        Assert.Equal(json1, json2);
+        json2.Should().Be(json1);
     }
 
     [Fact]
@@ -154,11 +149,11 @@ public sealed class McpProtocolEndToEndTests
         var request = MakeToolCallRequest("fail", args);
         var response = await _handler.HandleAsync(request, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(response);
-        Assert.Null(response!.Error); // MCP spec: tool errors are content, not JSON-RPC errors
+        response.Should().NotBeNull();
+        response!.Error.Should().BeNull();
         var resultJson = response.Result!.Value;
-        Assert.True(resultJson.GetProperty("isError").GetBoolean());
-        Assert.Contains("boom", resultJson.GetProperty("content")[0].GetProperty("text").GetString());
+        resultJson.GetProperty("isError").GetBoolean().Should().BeTrue();
+        resultJson.GetProperty("content")[0].GetProperty("text").GetString().Should().Contain("boom");
     }
 
     [Fact]
@@ -185,7 +180,7 @@ public sealed class McpProtocolEndToEndTests
         await _handler.HandleAsync(request, TestContext.Current.CancellationToken);
 
         var transportSpans = collector.Where("tools/call");
-        Assert.NotEmpty(transportSpans);
+        transportSpans.Should().NotBeEmpty();
         var transport = transportSpans[0];
         transport.AssertTag("mcp.method.name", "tools/call");
         transport.AssertHasTag("jsonrpc.request.id");

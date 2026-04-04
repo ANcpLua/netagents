@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using AwesomeAssertions;
 using NetAgents.Tests;
 using NetAgents.Cli.Commands;
 using NetAgents.Lockfile;
@@ -74,8 +75,8 @@ public sealed class InstallCommandTests
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             var result = await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
 
-            Assert.Contains("pdf", result.Installed);
-            Assert.True(File.Exists(Path.Combine(project, ".agents", "skills", "pdf", "SKILL.md")));
+            result.Installed.Should().Contain("pdf");
+            File.Exists(Path.Combine(project, ".agents", "skills", "pdf", "SKILL.md")).Should().BeTrue();
         }
         finally
         {
@@ -99,8 +100,8 @@ public sealed class InstallCommandTests
             await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
 
             var lockfile = await LockfileLoader.LoadAsync(Path.Combine(project, "agents.lock"), CT);
-            Assert.NotNull(lockfile);
-            Assert.True(lockfile.Skills.ContainsKey("pdf"));
+            lockfile.Should().NotBeNull();
+            lockfile!.Skills.ContainsKey("pdf").Should().BeTrue();
         }
         finally
         {
@@ -119,7 +120,7 @@ public sealed class InstallCommandTests
 
         var result = await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
 
-        Assert.Empty(result.Installed);
+        result.Installed.Should().BeEmpty();
     }
 
     [Fact]
@@ -160,7 +161,7 @@ public sealed class InstallCommandTests
             await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
             var result = await InstallCommand.RunInstallAsync(new InstallOptions(scope, true), CT);
 
-            Assert.Contains("pdf", result.Installed);
+            result.Installed.Should().Contain("pdf");
         }
         finally
         {
@@ -183,10 +184,10 @@ public sealed class InstallCommandTests
 
         var result = await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
 
-        Assert.Contains("local-skill", result.Installed);
+        result.Installed.Should().Contain("local-skill");
         var lockfile = await LockfileLoader.LoadAsync(Path.Combine(project, "agents.lock"), CT);
-        Assert.NotNull(lockfile);
-        Assert.Equal("path:.agents/skills/local-skill", lockfile.Skills["local-skill"].Source);
+        lockfile.Should().NotBeNull();
+        lockfile!.Skills["local-skill"].Source.Should().Be("path:.agents/skills/local-skill");
     }
 
     [Fact]
@@ -204,8 +205,8 @@ public sealed class InstallCommandTests
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             var result = await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
 
-            Assert.Contains("pdf", result.Installed);
-            Assert.Contains("review", result.Installed);
+            result.Installed.Should().Contain("pdf");
+            result.Installed.Should().Contain("review");
         }
         finally
         {
@@ -228,8 +229,8 @@ public sealed class InstallCommandTests
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             var result = await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
 
-            Assert.Contains("pdf", result.Installed);
-            Assert.DoesNotContain("review", result.Installed);
+            result.Installed.Should().Contain("pdf");
+            result.Installed.Should().NotContain("review");
         }
         finally
         {

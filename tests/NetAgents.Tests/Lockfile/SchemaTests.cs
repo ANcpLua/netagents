@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Lockfile;
 
+using AwesomeAssertions;
 using NetAgents.Lockfile;
 using Xunit;
 
@@ -10,9 +11,9 @@ public class SchemaTests
     {
         const string toml = "version = 1\n";
         var result = await LockfileLoader.LoadAsync(WriteToTemp(toml), TestContext.Current.CancellationToken);
-        Assert.NotNull(result);
-        Assert.Equal(1, result.Version);
-        Assert.Empty(result.Skills);
+        result.Should().NotBeNull();
+        result!.Version.Should().Be(1);
+        result.Skills.Should().BeEmpty();
     }
 
     [Fact]
@@ -29,8 +30,8 @@ public class SchemaTests
                             """;
 
         var result = await LockfileLoader.LoadAsync(WriteToTemp(toml), TestContext.Current.CancellationToken);
-        Assert.NotNull(result);
-        Assert.True(result.Skills.ContainsKey("pdf-processing"));
+        result.Should().NotBeNull();
+        result!.Skills.ContainsKey("pdf-processing").Should().BeTrue();
     }
 
     [Fact]
@@ -44,8 +45,8 @@ public class SchemaTests
                             """;
 
         var result = await LockfileLoader.LoadAsync(WriteToTemp(toml), TestContext.Current.CancellationToken);
-        Assert.NotNull(result);
-        Assert.True(result.Skills.ContainsKey("my-skill"));
+        result.Should().NotBeNull();
+        result!.Skills.ContainsKey("my-skill").Should().BeTrue();
     }
 
     [Fact]
@@ -69,9 +70,9 @@ public class SchemaTests
                             """;
 
         var result = await LockfileLoader.LoadAsync(WriteToTemp(toml), TestContext.Current.CancellationToken);
-        Assert.NotNull(result);
-        var skill = Assert.IsType<LockedGitSkill>(result.Skills["my-skill"]);
-        Assert.Null(skill.ResolvedRef);
+        result.Should().NotBeNull();
+        var skill = result!.Skills["my-skill"].Should().BeOfType<LockedGitSkill>().Which;
+        skill.ResolvedRef.Should().BeNull();
     }
 
     private static string WriteToTemp(string content)

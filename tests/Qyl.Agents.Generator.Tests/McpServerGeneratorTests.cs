@@ -1,6 +1,7 @@
 namespace Qyl.Agents.Generator.Tests;
 
 using ANcpLua.Roslyn.Utilities.Testing;
+using AwesomeAssertions;
 using Microsoft.CodeAnalysis;
 using Xunit;
 
@@ -41,24 +42,24 @@ public sealed class McpServerGeneratorTests : IDisposable
             .Produces("TestApp.MyTools.McpServer.g.cs")
             .File("TestApp.MyTools.McpServer.g.cs", content =>
             {
-                Assert.Contains("DispatchToolCallAsync", content);
-                Assert.Contains("ExecuteTool_EchoAsync", content);
-                Assert.Contains("GetServerInfo", content);
-                Assert.Contains("GetToolInfos", content);
-                Assert.Contains("s_schema_Echo", content);
-                Assert.DoesNotContain("s_jsonOptions", content);
-                Assert.Contains("GetString()", content);
-                Assert.Contains("SkillMd", content);
-                Assert.Contains("s_skillMd", content);
-                Assert.Contains("gen_ai.operation.name", content);
-                Assert.Contains("gen_ai.tool.name", content);
-                Assert.Contains("ActivityKind.Internal", content);
-                Assert.Contains("await ", content);
-                Assert.Contains("cancellationToken", content);
-                Assert.Contains("gen_ai.system", content);
-                Assert.Contains("server.name", content);
-                Assert.Contains("gen_ai.client.operation.duration", content);
-                Assert.DoesNotContain("qyl.agent.tool.calls", content);
+                content.Should().Contain("DispatchToolCallAsync");
+                content.Should().Contain("ExecuteTool_EchoAsync");
+                content.Should().Contain("GetServerInfo");
+                content.Should().Contain("GetToolInfos");
+                content.Should().Contain("s_schema_Echo");
+                content.Should().NotContain("s_jsonOptions");
+                content.Should().Contain("GetString()");
+                content.Should().Contain("SkillMd");
+                content.Should().Contain("s_skillMd");
+                content.Should().Contain("gen_ai.operation.name");
+                content.Should().Contain("gen_ai.tool.name");
+                content.Should().Contain("ActivityKind.Internal");
+                content.Should().Contain("await ");
+                content.Should().Contain("cancellationToken");
+                content.Should().Contain("gen_ai.system");
+                content.Should().Contain("server.name");
+                content.Should().Contain("gen_ai.client.operation.duration");
+                content.Should().NotContain("qyl.agent.tool.calls");
             })
             .Compiles();
     }
@@ -104,18 +105,13 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("Docs.DocTools.McpServer.g.cs", content =>
             {
-                // Verify SKILL.md frontmatter markers
-                Assert.Contains("name: doc-tools", content);
-                Assert.Contains("description: A doc server", content);
-                Assert.Contains("---", content);
-
-                // Verify tool documentation
-                Assert.Contains("### search", content);
-                Assert.Contains("Search documents", content);
-
-                // Verify parameter documentation
-                Assert.Contains("`query` (string, required): Query text", content);
-                Assert.Contains("`limit` (integer, required)", content);
+                content.Should().Contain("name: doc-tools");
+                content.Should().Contain("description: A doc server");
+                content.Should().Contain("---");
+                content.Should().Contain("### search");
+                content.Should().Contain("Search documents");
+                content.Should().Contain("`query` (string, required): Query text");
+                content.Should().Contain("`limit` (integer, required)");
             })
             .Compiles();
     }
@@ -146,8 +142,8 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("Multi.ToolBox.McpServer.g.cs", content =>
             {
-                Assert.Contains("ExecuteTool_AddAsync", content);
-                Assert.Contains("ExecuteTool_SubtractAsync", content);
+                content.Should().Contain("ExecuteTool_AddAsync");
+                content.Should().Contain("ExecuteTool_SubtractAsync");
             })
             .Compiles();
     }
@@ -397,14 +393,12 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("EnumTest.EnumServer.McpServer.g.cs", content =>
             {
-                // Schema should have enum values
-                Assert.Contains("Low", content);
-                Assert.Contains("Medium", content);
-                Assert.Contains("High", content);
-                // AOT-safe enum parsing via direct accessor
-                Assert.DoesNotContain("s_jsonOptions", content);
-                Assert.Contains("Enum.Parse", content);
-                Assert.Contains("Priority", content);
+                content.Should().Contain("Low");
+                content.Should().Contain("Medium");
+                content.Should().Contain("High");
+                content.Should().NotContain("s_jsonOptions");
+                content.Should().Contain("Enum.Parse");
+                content.Should().Contain("Priority");
             })
             .Compiles();
     }
@@ -432,9 +426,9 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("NullableTest.NullableServer.McpServer.g.cs", content =>
             {
-                Assert.DoesNotContain("s_jsonOptions", content);
-                Assert.Contains("GetInt32()", content);
-                Assert.Contains("JsonValueKind.Null", content);
+                content.Should().NotContain("s_jsonOptions");
+                content.Should().Contain("GetInt32()");
+                content.Should().Contain("JsonValueKind.Null");
             })
             .Compiles();
     }
@@ -462,8 +456,8 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("JsonCtx.CtxServer.McpServer.g.cs", content =>
             {
-                Assert.DoesNotContain("s_jsonOptions", content);
-                Assert.Contains("GetString()", content);
+                content.Should().NotContain("s_jsonOptions");
+                content.Should().Contain("GetString()");
             })
             .Compiles();
     }
@@ -495,9 +489,9 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("FormatTest.FormatServer.McpServer.g.cs", content =>
             {
-                Assert.Contains("date-time", content);
-                Assert.Contains("uuid", content);
-                Assert.Contains("uri", content);
+                content.Should().Contain("date-time");
+                content.Should().Contain("uuid");
+                content.Should().Contain("uri");
             })
             .Compiles();
     }
@@ -525,8 +519,8 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("ArrayTest.ArrayServer.McpServer.g.cs", content =>
             {
-                Assert.Contains("s_jsonOptions", content);
-                Assert.Contains("array", content);
+                content.Should().Contain("s_jsonOptions");
+                content.Should().Contain("array");
             })
             .Compiles();
     }
@@ -557,9 +551,7 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("MultiLine.MultiServer.McpServer.g.cs", content =>
             {
-                // Multi-line description should use YAML literal block scalar (|)
-                // or be properly escaped — the key test is that it compiles
-                Assert.Contains("description:", content);
+                content.Should().Contain("description:");
             })
             .Compiles();
     }
@@ -587,8 +579,8 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("OTelTest.OTelServer.McpServer.g.cs", content =>
             {
-                Assert.Contains("SetTag(\"server.name\"", content);
-                Assert.Contains("SetTag(\"gen_ai.system\", \"mcp\")", content);
+                content.Should().Contain("SetTag(\"server.name\"");
+                content.Should().Contain("SetTag(\"gen_ai.system\", \"mcp\")");
             })
             .Compiles();
     }
@@ -616,10 +608,10 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("SafetyTest.CalcServer.McpServer.g.cs", content =>
             {
-                Assert.Contains("ReadOnlyHint = true", content);
-                Assert.Contains("IdempotentHint = true", content);
-                Assert.DoesNotContain("DestructiveHint", content);
-                Assert.DoesNotContain("OpenWorldHint", content);
+                content.Should().Contain("ReadOnlyHint = true");
+                content.Should().Contain("IdempotentHint = true");
+                content.Should().NotContain("DestructiveHint");
+                content.Should().NotContain("OpenWorldHint");
             })
             .Compiles();
     }
@@ -675,10 +667,10 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("ResTest.ResServer.McpServer.g.cs", content =>
             {
-                Assert.Contains("DispatchResourceReadAsync", content);
-                Assert.Contains("GetResourceInfos", content);
-                Assert.Contains("config://agents.toml", content);
-                Assert.Contains("application/toml", content);
+                content.Should().Contain("DispatchResourceReadAsync");
+                content.Should().Contain("GetResourceInfos");
+                content.Should().Contain("config://agents.toml");
+                content.Should().Contain("application/toml");
             })
             .Compiles();
     }
@@ -762,9 +754,9 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("PromptTest.PromptServer.McpServer.g.cs", content =>
             {
-                Assert.Contains("DispatchPromptAsync", content);
-                Assert.Contains("GetPromptInfos", content);
-                Assert.Contains("diagnose", content);
+                content.Should().Contain("DispatchPromptAsync");
+                content.Should().Contain("GetPromptInfos");
+                content.Should().Contain("diagnose");
             })
             .Compiles();
     }
@@ -844,12 +836,12 @@ public sealed class McpServerGeneratorTests : IDisposable
         result
             .File("LlmsTest.CalcServer.McpServer.g.cs", content =>
             {
-                Assert.Contains("LlmsTxt", content);
-                Assert.Contains("s_llmsTxt", content);
-                Assert.Contains("# calc-server", content);
-                Assert.Contains("## Tools", content);
-                Assert.Contains("[add](/mcp)", content);
-                Assert.Contains("read-only", content);
+                content.Should().Contain("LlmsTxt");
+                content.Should().Contain("s_llmsTxt");
+                content.Should().Contain("# calc-server");
+                content.Should().Contain("## Tools");
+                content.Should().Contain("[add](/mcp)");
+                content.Should().Contain("read-only");
             })
             .Compiles();
     }

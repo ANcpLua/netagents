@@ -4,6 +4,7 @@
     <SpectreConsoleVersion>0.55.0</SpectreConsoleVersion>
     <XunitV3Version>3.2.2</XunitV3Version>
     <MicrosoftNETTestSdkVersion>18.3.0</MicrosoftNETTestSdkVersion>
+    <AwesomeAssertionsVersion>9.4.0</AwesomeAssertionsVersion>
     <RoslynVersion>5.3.0</RoslynVersion>
     <MicrosoftExtensionsAIAbstractionsVersion>10.4.1</MicrosoftExtensionsAIAbstractionsVersion>
     <OpenAIVersion>2.9.1</OpenAIVersion>

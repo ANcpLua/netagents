@@ -19,5 +19,6 @@
 
   <ItemGroup Label="Test">
     <PackageVersion Include="xunit.v3.mtp-v2" Version="$(XunitV3Version)" />
+    <PackageVersion Include="AwesomeAssertions" Version="$(AwesomeAssertionsVersion)" />
   </ItemGroup>
 </Project>

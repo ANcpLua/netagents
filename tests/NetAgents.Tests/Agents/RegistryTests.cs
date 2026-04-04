@@ -1,6 +1,7 @@
 namespace NetAgents.Tests.Agents;
 
 using System.Text.Json.Nodes;
+using AwesomeAssertions;
 using NetAgents.Agents;
 using Xunit;
 
@@ -22,12 +23,12 @@ public class RegistryTests
     public void AllAgentIds_ReturnsFiveAgents()
     {
         var ids = AgentRegistry.AllAgentIds();
-        Assert.Equal(5, ids.Count);
-        Assert.Contains("claude", ids);
-        Assert.Contains("cursor", ids);
-        Assert.Contains("codex", ids);
-        Assert.Contains("vscode", ids);
-        Assert.Contains("opencode", ids);
+        ids.Count.Should().Be(5);
+        ids.Should().Contain("claude");
+        ids.Should().Contain("cursor");
+        ids.Should().Contain("codex");
+        ids.Should().Contain("vscode");
+        ids.Should().Contain("opencode");
     }
 
     // ── getAgent ─────────────────────────────────────────────────────────────
@@ -35,7 +36,7 @@ public class RegistryTests
     [Fact]
     public void GetAgent_ReturnsNullForUnknown()
     {
-        Assert.Null(AgentRegistry.GetAgent("unknown"));
+        AgentRegistry.GetAgent("unknown").Should().BeNull();
     }
 
     // ── claude serializer ────────────────────────────────────────────────────
@@ -45,11 +46,11 @@ public class RegistryTests
     {
         var agent = AgentRegistry.GetAgent("claude")!;
         var (name, config) = agent.SerializeServer(StdioServer);
-        Assert.Equal("github", name);
+        name.Should().Be("github");
 
         var obj = (JsonObject)config;
-        Assert.Equal("npx", obj["command"]!.GetValue<string>());
-        Assert.Equal("${GITHUB_TOKEN}", obj["env"]!["GITHUB_TOKEN"]!.GetValue<string>());
+        obj["command"]!.GetValue<string>().Should().Be("npx");
+        obj["env"]!["GITHUB_TOKEN"]!.GetValue<string>().Should().Be("${GITHUB_TOKEN}");
     }
 
     [Fact]
@@ -57,12 +58,12 @@ public class RegistryTests
     {
         var agent = AgentRegistry.GetAgent("claude")!;
         var (name, config) = agent.SerializeServer(HttpServer);
-        Assert.Equal("remote-api", name);
+        name.Should().Be("remote-api");
 
         var obj = (JsonObject)config;
-        Assert.Equal("http", obj["type"]!.GetValue<string>());
-        Assert.Equal("https://mcp.example.com/sse", obj["url"]!.GetValue<string>());
-        Assert.Equal("Bearer tok", obj["headers"]!["Authorization"]!.GetValue<string>());
+        obj["type"]!.GetValue<string>().Should().Be("http");
+        obj["url"]!.GetValue<string>().Should().Be("https://mcp.example.com/sse");
+        obj["headers"]!["Authorization"]!.GetValue<string>().Should().Be("Bearer tok");
     }
 
     [Fact]
@@ -72,8 +73,8 @@ public class RegistryTests
         var (_, config) = agent.SerializeServer(StdioNoEnv);
 
         var obj = (JsonObject)config;
-        Assert.Equal("mcp-server", obj["command"]!.GetValue<string>());
-        Assert.Null(obj["env"]);
+        obj["command"]!.GetValue<string>().Should().Be("mcp-server");
+        obj["env"].Should().BeNull();
     }
 
     // ── cursor serializer ────────────────────────────────────────────────────
@@ -87,8 +88,8 @@ public class RegistryTests
         var (cn, cc) = cursor.SerializeServer(StdioServer);
         var (an, ac) = claude.SerializeServer(StdioServer);
 
-        Assert.Equal(an, cn);
-        Assert.Equal(ac.ToString(), cc.ToString());
+        cn.Should().Be(an);
+        cc.ToString().Should().Be(ac.ToString());
     }
 
     [Fact]
@@ -96,11 +97,11 @@ public class RegistryTests
     {
         var agent = AgentRegistry.GetAgent("cursor")!;
         var (name, config) = agent.SerializeServer(HttpServer);
-        Assert.Equal("remote-api", name);
+        name.Should().Be("remote-api");
 
         var obj = (JsonObject)config;
-        Assert.Null(obj["type"]);
-        Assert.Equal("https://mcp.example.com/sse", obj["url"]!.GetValue<string>());
+        obj["type"].Should().BeNull();
+        obj["url"]!.GetValue<string>().Should().Be("https://mcp.example.com/sse");
     }
 
     // ── codex serializer ─────────────────────────────────────────────────────
@@ -110,11 +111,11 @@ public class RegistryTests
     {
         var agent = AgentRegistry.GetAgent("codex")!;
         var (name, config) = agent.SerializeServer(StdioServer);
-        Assert.Equal("github", name);
+        name.Should().Be("github");
 
         var obj = (JsonObject)config;
-        Assert.Equal("npx", obj["command"]!.GetValue<string>());
-        Assert.Equal("${GITHUB_TOKEN}", obj["env"]!["GITHUB_TOKEN"]!.GetValue<string>());
+        obj["command"]!.GetValue<string>().Should().Be("npx");
+        obj["env"]!["GITHUB_TOKEN"]!.GetValue<string>().Should().Be("${GITHUB_TOKEN}");
     }
 
     [Fact]
@@ -122,20 +123,20 @@ public class RegistryTests
     {
         var agent = AgentRegistry.GetAgent("codex")!;
         var (name, config) = agent.SerializeServer(HttpServer);
-        Assert.Equal("remote-api", name);
+        name.Should().Be("remote-api");
 
         var obj = (JsonObject)config;
-        Assert.Null(obj["type"]);
-        Assert.Equal("https://mcp.example.com/sse", obj["url"]!.GetValue<string>());
-        Assert.Equal("Bearer tok", obj["http_headers"]!["Authorization"]!.GetValue<string>());
+        obj["type"].Should().BeNull();
+        obj["url"]!.GetValue<string>().Should().Be("https://mcp.example.com/sse");
+        obj["http_headers"]!["Authorization"]!.GetValue<string>().Should().Be("Bearer tok");
     }
 
     [Fact]
     public void Codex_HasTomlFormatAndShared()
     {
         var agent = AgentRegistry.GetAgent("codex")!;
-        Assert.Equal(ConfigFormat.Toml, agent.Mcp.Format);
-        Assert.True(agent.Mcp.Shared);
+        agent.Mcp.Format.Should().Be(ConfigFormat.Toml);
+        agent.Mcp.Shared.Should().BeTrue();
     }
 
     // ── vscode serializer ────────────────────────────────────────────────────
@@ -145,12 +146,12 @@ public class RegistryTests
     {
         var agent = AgentRegistry.GetAgent("vscode")!;
         var (name, config) = agent.SerializeServer(StdioServer);
-        Assert.Equal("github", name);
+        name.Should().Be("github");
 
         var obj = (JsonObject)config;
-        Assert.Equal("stdio", obj["type"]!.GetValue<string>());
-        Assert.Equal("npx", obj["command"]!.GetValue<string>());
-        Assert.Equal("${input:GITHUB_TOKEN}", obj["env"]!["GITHUB_TOKEN"]!.GetValue<string>());
+        obj["type"]!.GetValue<string>().Should().Be("stdio");
+        obj["command"]!.GetValue<string>().Should().Be("npx");
+        obj["env"]!["GITHUB_TOKEN"]!.GetValue<string>().Should().Be("${input:GITHUB_TOKEN}");
     }
 
     [Fact]
@@ -160,7 +161,7 @@ public class RegistryTests
         var (_, config) = agent.SerializeServer(HttpServer);
 
         var obj = (JsonObject)config;
-        Assert.Equal("http", obj["type"]!.GetValue<string>());
+        obj["type"]!.GetValue<string>().Should().Be("http");
     }
 
     [Fact]
@@ -170,8 +171,8 @@ public class RegistryTests
         var (_, config) = agent.SerializeServer(StdioNoEnv);
 
         var obj = (JsonObject)config;
-        Assert.Equal("stdio", obj["type"]!.GetValue<string>());
-        Assert.Null(obj["env"]);
+        obj["type"]!.GetValue<string>().Should().Be("stdio");
+        obj["env"].Should().BeNull();
     }
 
     // ── opencode serializer ──────────────────────────────────────────────────
@@ -181,14 +182,14 @@ public class RegistryTests
     {
         var agent = AgentRegistry.GetAgent("opencode")!;
         var (name, config) = agent.SerializeServer(StdioServer);
-        Assert.Equal("github", name);
+        name.Should().Be("github");
 
         var obj = (JsonObject)config;
-        Assert.Equal("local", obj["type"]!.GetValue<string>());
+        obj["type"]!.GetValue<string>().Should().Be("local");
         var cmd = obj["command"]!.AsArray();
-        Assert.Equal("npx", cmd[0]!.GetValue<string>());
-        Assert.Equal("-y", cmd[1]!.GetValue<string>());
-        Assert.Equal("${GITHUB_TOKEN}", obj["environment"]!["GITHUB_TOKEN"]!.GetValue<string>());
+        cmd[0]!.GetValue<string>().Should().Be("npx");
+        cmd[1]!.GetValue<string>().Should().Be("-y");
+        obj["environment"]!["GITHUB_TOKEN"]!.GetValue<string>().Should().Be("${GITHUB_TOKEN}");
     }
 
     [Fact]
@@ -198,7 +199,7 @@ public class RegistryTests
         var (_, config) = agent.SerializeServer(HttpServer);
 
         var obj = (JsonObject)config;
-        Assert.Equal("remote", obj["type"]!.GetValue<string>());
+        obj["type"]!.GetValue<string>().Should().Be("remote");
     }
 
     [Fact]
@@ -208,15 +209,15 @@ public class RegistryTests
         var (_, config) = agent.SerializeServer(StdioNoEnv);
 
         var obj = (JsonObject)config;
-        Assert.Equal("local", obj["type"]!.GetValue<string>());
-        Assert.Null(obj["environment"]);
+        obj["type"]!.GetValue<string>().Should().Be("local");
+        obj["environment"].Should().BeNull();
     }
 
     [Fact]
     public void OpenCode_SharedConfigReadsAgentsNatively()
     {
         var agent = AgentRegistry.GetAgent("opencode")!;
-        Assert.True(agent.Mcp.Shared);
-        Assert.Null(agent.SkillsParentDir);
+        agent.Mcp.Shared.Should().BeTrue();
+        agent.SkillsParentDir.Should().BeNull();
     }
 }

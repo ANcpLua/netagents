@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using AwesomeAssertions;
 using NetAgents.Tests;
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
@@ -63,16 +64,16 @@ public sealed class RemoveCommandTests
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
             var result = await RemoveCommand.RunRemoveAsync(new RemoveOptions(scope, "pdf"), CT);
-            Assert.True(result.Removed);
-            Assert.False(result.IsWildcard);
+            result.Removed.Should().BeTrue();
+            result.IsWildcard.Should().BeFalse();
 
             var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-            Assert.DoesNotContain(config.Skills.OfType<RegularSkillDependency>(), s => s.Name == "pdf");
-            Assert.False(Directory.Exists(Path.Combine(project, ".agents", "skills", "pdf")));
+            config.Skills.OfType<RegularSkillDependency>().Should().NotContain(s => s.Name == "pdf");
+            Directory.Exists(Path.Combine(project, ".agents", "skills", "pdf")).Should().BeFalse();
 
             var lockfile = await LockfileLoader.LoadAsync(scope.LockPath, CT);
-            Assert.NotNull(lockfile);
-            Assert.False(lockfile.Skills.ContainsKey("pdf"));
+            lockfile.Should().NotBeNull();
+            lockfile!.Skills.ContainsKey("pdf").Should().BeFalse();
         }
         finally
         {
@@ -109,10 +110,10 @@ public sealed class RemoveCommandTests
             await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
 
             var result = await RemoveCommand.RunRemoveAsync(new RemoveOptions(scope, "pdf"), CT);
-            Assert.False(result.Removed);
-            Assert.True(result.IsWildcard);
-            Assert.NotNull(result.WildcardSource);
-            Assert.NotNull(result.Hint);
+            result.Removed.Should().BeFalse();
+            result.IsWildcard.Should().BeTrue();
+            result.WildcardSource.Should().NotBeNull();
+            result.Hint.Should().NotBeNull();
         }
         finally
         {
@@ -135,11 +136,11 @@ public sealed class RemoveCommandTests
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             await InstallCommand.RunInstallAsync(new InstallOptions(scope), CT);
             var result = await RemoveCommand.RunRemoveAsync(new RemoveOptions(scope, "pdf"), CT);
-            Assert.True(result.Removed);
+            result.Removed.Should().BeTrue();
 
             var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-            Assert.DoesNotContain(config.Skills.OfType<RegularSkillDependency>(), s => s.Name == "pdf");
-            Assert.True(config.Skills.OfType<WildcardSkillDependency>().Any());
+            config.Skills.OfType<RegularSkillDependency>().Should().NotContain(s => s.Name == "pdf");
+            config.Skills.OfType<WildcardSkillDependency>().Any().Should().BeTrue();
         }
         finally
         {

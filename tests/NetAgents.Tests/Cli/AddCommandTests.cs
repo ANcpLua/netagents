@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using AwesomeAssertions;
 using NetAgents.Tests;
 using NetAgents.Cli.Commands;
 using Utils;
@@ -65,9 +66,9 @@ public sealed class AddCommandTests
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             var result = await AddCommand.RunAddAsync(new AddOptions(scope, repoDir, Names: ["pdf"]), CT);
 
-            Assert.Equal("pdf", result.SingleName);
+            result.SingleName.Should().Be("pdf");
             var toml = await File.ReadAllTextAsync(Path.Combine(project, "agents.toml"), CT);
-            Assert.Contains("name = \"pdf\"", toml);
+            toml.Should().Contain("name = \"pdf\"");
         }
         finally
         {
@@ -88,9 +89,9 @@ public sealed class AddCommandTests
             var result = await AddCommand.RunAddAsync(
                 new AddOptions(scope, repoDir, Names: ["pdf", "review"]), CT);
 
-            Assert.NotNull(result.MultipleNames);
-            Assert.Contains("pdf", result.MultipleNames);
-            Assert.Contains("review", result.MultipleNames);
+            result.MultipleNames.Should().NotBeNull();
+            result.MultipleNames.Should().Contain("pdf");
+            result.MultipleNames.Should().Contain("review");
         }
         finally
         {
@@ -132,7 +133,7 @@ public sealed class AddCommandTests
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             var ex = await Assert.ThrowsAsync<AddException>(() =>
                 AddCommand.RunAddAsync(new AddOptions(scope, repoDir, Names: ["pdf"]), CT));
-            Assert.Contains("already exists", ex.Message);
+            ex.Message.Should().Contain("already exists");
         }
         finally
         {
@@ -180,7 +181,7 @@ public sealed class AddCommandTests
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             var result = await AddCommand.RunAddAsync(new AddOptions(scope, TestWorkspace.ToGitSource(singleRepo)), CT);
 
-            Assert.Equal("only-skill", result.SingleName);
+            result.SingleName.Should().Be("only-skill");
         }
         finally
         {
@@ -200,7 +201,7 @@ public sealed class AddCommandTests
             var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
             var ex = await Assert.ThrowsAsync<AddException>(() =>
                 AddCommand.RunAddAsync(new AddOptions(scope, repoDir), CT));
-            Assert.Contains("Multiple skills found", ex.Message);
+            ex.Message.Should().Contain("Multiple skills found");
         }
         finally
         {
@@ -220,6 +221,6 @@ public sealed class AddCommandTests
         var scope = ScopeResolver.ResolveScope(ScopeKind.Project, project);
         var result = await AddCommand.RunAddAsync(new AddOptions(scope, "path:my-skill"), CT);
 
-        Assert.Equal("my-skill", result.SingleName);
+        result.SingleName.Should().Be("my-skill");
     }
 }

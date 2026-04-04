@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Lockfile;
 
+using AwesomeAssertions;
 using NetAgents.Lockfile;
 using Xunit;
 
@@ -37,9 +38,9 @@ public class WriterTests : IAsyncLifetime
         await LockfileWriter.WriteAsync(lockPath, data, TestContext.Current.CancellationToken);
 
         var loaded = await LockfileLoader.LoadAsync(lockPath, TestContext.Current.CancellationToken);
-        Assert.NotNull(loaded);
-        Assert.Equal(1, loaded.Version);
-        Assert.Equal("anthropics/skills", loaded.Skills["pdf-processing"].Source);
+        loaded.Should().NotBeNull();
+        loaded!.Version.Should().Be(1);
+        loaded.Skills["pdf-processing"].Source.Should().Be("anthropics/skills");
     }
 
     [Fact]
@@ -54,8 +55,8 @@ public class WriterTests : IAsyncLifetime
         await LockfileWriter.WriteAsync(lockPath, data, TestContext.Current.CancellationToken);
 
         var loaded = await LockfileLoader.LoadAsync(lockPath, TestContext.Current.CancellationToken);
-        Assert.NotNull(loaded);
-        Assert.Equal("path:../shared/my-skill", loaded.Skills["my-skill"].Source);
+        loaded.Should().NotBeNull();
+        loaded!.Skills["my-skill"].Source.Should().Be("path:../shared/my-skill");
     }
 
     [Fact]
@@ -71,9 +72,9 @@ public class WriterTests : IAsyncLifetime
         await LockfileWriter.WriteAsync(lockPath, data, TestContext.Current.CancellationToken);
 
         var loaded = await LockfileLoader.LoadAsync(lockPath, TestContext.Current.CancellationToken);
-        Assert.NotNull(loaded);
-        var keys = loaded.Skills.Keys.ToList();
-        Assert.Equal(["a-skill", "z-skill"], keys);
+        loaded.Should().NotBeNull();
+        var keys = loaded!.Skills.Keys.ToList();
+        keys.Should().BeEquivalentTo(["a-skill", "z-skill"]);
     }
 
     [Fact]
@@ -88,8 +89,8 @@ public class WriterTests : IAsyncLifetime
         await LockfileWriter.WriteAsync(lockPath, data, TestContext.Current.CancellationToken);
 
         var content = await File.ReadAllTextAsync(lockPath, TestContext.Current.CancellationToken);
-        Assert.EndsWith("\n", content);
-        Assert.False(content.EndsWith("\n\n"), "File should not end with double newline");
+        content.Should().EndWith("\n");
+        content.EndsWith("\n\n").Should().BeFalse("File should not end with double newline");
     }
 
     [Fact]
@@ -97,6 +98,6 @@ public class WriterTests : IAsyncLifetime
     {
         var result =
             await LockfileLoader.LoadAsync(Path.Combine(_dir, "nope.lock"), TestContext.Current.CancellationToken);
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 }

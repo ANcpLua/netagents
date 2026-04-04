@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using AwesomeAssertions;
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
 using Xunit;
@@ -33,7 +34,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT);
 
         var config = await ConfigLoader.LoadAsync(Path.Combine(tmp.Path, "agents.toml"), CT);
-        Assert.Equal(1, config.Version);
+        config.Version.Should().Be(1);
     }
 
     [Fact]
@@ -45,10 +46,10 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Single(config.Skills);
-        var skill = Assert.IsType<RegularSkillDependency>(config.Skills[0]);
-        Assert.Equal("netagents", skill.Name);
-        Assert.Equal("getsentry/dotagents", skill.Source);
+        config.Skills.Should().ContainSingle();
+        var skill = config.Skills[0].Should().BeOfType<RegularSkillDependency>().Which;
+        skill.Name.Should().Be("netagents");
+        skill.Source.Should().Be("getsentry/dotagents");
     }
 
     [Fact]
@@ -60,7 +61,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Empty(config.Skills);
+        config.Skills.Should().BeEmpty();
     }
 
     [Fact]
@@ -71,7 +72,7 @@ public sealed class InitCommandTests
 
         await InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT);
 
-        Assert.True(Directory.Exists(Path.Combine(tmp.Path, ".agents", "skills")));
+        Directory.Exists(Path.Combine(tmp.Path, ".agents", "skills")).Should().BeTrue();
     }
 
     [Fact]
@@ -82,7 +83,7 @@ public sealed class InitCommandTests
 
         await InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT);
 
-        Assert.True(File.Exists(Path.Combine(tmp.Path, ".agents", ".gitignore")));
+        File.Exists(Path.Combine(tmp.Path, ".agents", ".gitignore")).Should().BeTrue();
     }
 
     [Fact]
@@ -94,7 +95,7 @@ public sealed class InitCommandTests
 
         var ex = await Assert.ThrowsAsync<InitException>(() =>
             InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT));
-        Assert.Contains("already exists", ex.Message);
+        ex.Message.Should().Contain("already exists");
     }
 
     [Fact]
@@ -107,7 +108,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, true, Skills: []), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Equal(1, config.Version);
+        config.Version.Should().Be(1);
     }
 
     [Fact]
@@ -120,8 +121,8 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, true, Skills: []), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Equal(1, config.Version);
-        Assert.True(Directory.Exists(scope.SkillsDir));
+        config.Version.Should().Be(1);
+        Directory.Exists(scope.SkillsDir).Should().BeTrue();
     }
 
     [Fact]
@@ -132,10 +133,10 @@ public sealed class InitCommandTests
 
         await InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT);
 
-        Assert.True(File.Exists(Path.Combine(tmp.Path, "agents.toml")));
-        Assert.True(Directory.Exists(Path.Combine(tmp.Path, ".agents")));
-        Assert.True(Directory.Exists(Path.Combine(tmp.Path, ".agents", "skills")));
-        Assert.True(File.Exists(Path.Combine(tmp.Path, ".agents", ".gitignore")));
+        File.Exists(Path.Combine(tmp.Path, "agents.toml")).Should().BeTrue();
+        Directory.Exists(Path.Combine(tmp.Path, ".agents")).Should().BeTrue();
+        Directory.Exists(Path.Combine(tmp.Path, ".agents", "skills")).Should().BeTrue();
+        File.Exists(Path.Combine(tmp.Path, ".agents", ".gitignore")).Should().BeTrue();
     }
 
     [Fact]
@@ -151,7 +152,7 @@ public sealed class InitCommandTests
 
         var entries = Directory.GetDirectories(Path.Combine(tmp.Path, ".agents", "skills"))
             .Select(Path.GetFileName).ToList();
-        Assert.Contains("my-skill", entries);
+        entries.Should().Contain("my-skill");
     }
 
     [Fact]
@@ -163,7 +164,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Agents: ["claude", "cursor"], Skills: []), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Equal(["claude", "cursor"], config.Agents);
+        config.Agents.Should().BeEquivalentTo(["claude", "cursor"]);
     }
 
     [Fact]
@@ -174,7 +175,7 @@ public sealed class InitCommandTests
 
         var ex = await Assert.ThrowsAsync<InitException>(() =>
             InitCommand.RunInitAsync(new InitOptions(scope, Agents: ["emacs"], Skills: []), CT));
-        Assert.Contains("Unknown agent", ex.Message);
+        ex.Message.Should().Contain("Unknown agent");
     }
 
     [Fact]
@@ -186,8 +187,8 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT);
 
         var content = await File.ReadAllTextAsync(Path.Combine(tmp.Path, ".gitignore"), CT);
-        Assert.Contains("agents.lock", content);
-        Assert.Contains(".agents/.gitignore", content);
+        content.Should().Contain("agents.lock");
+        content.Should().Contain(".agents/.gitignore");
     }
 
     [Fact]
@@ -200,8 +201,8 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT);
 
         var content = await File.ReadAllTextAsync(Path.Combine(tmp.Path, ".gitignore"), CT);
-        Assert.Contains("node_modules/", content);
-        Assert.Contains("agents.lock", content);
+        content.Should().Contain("node_modules/");
+        content.Should().Contain("agents.lock");
     }
 
     [Fact]
@@ -214,7 +215,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Trust: trust, Skills: []), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Contains("my-org", config.Trust!.GithubOrgs);
+        config.Trust!.GithubOrgs.Should().Contain("my-org");
     }
 
     [Fact]
@@ -227,7 +228,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Trust: trust, Skills: []), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.True(config.Trust!.AllowAll);
+        config.Trust!.AllowAll.Should().BeTrue();
     }
 
     [Fact]
@@ -240,7 +241,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Trust: trust), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Contains("getsentry/dotagents", config.Trust!.GithubRepos);
+        config.Trust!.GithubRepos.Should().Contain("getsentry/dotagents");
     }
 
     [Fact]
@@ -253,7 +254,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Trust: trust), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.DoesNotContain("getsentry/dotagents", config.Trust!.GithubRepos);
+        config.Trust!.GithubRepos.Should().NotContain("getsentry/dotagents");
     }
 
     [Fact]
@@ -266,7 +267,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Trust: trust), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Equal(1, config.Trust!.GithubRepos.Count(r => r == "getsentry/dotagents"));
+        config.Trust!.GithubRepos.Count(r => r == "getsentry/dotagents").Should().Be(1);
     }
 
     [Fact]
@@ -279,7 +280,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Trust: trust), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.Empty(config.Trust!.GithubRepos);
+        config.Trust!.GithubRepos.Should().BeEmpty();
     }
 
     [Fact]
@@ -292,7 +293,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Trust: trust, Skills: []), CT);
 
         var config = await ConfigLoader.LoadAsync(scope.ConfigPath, CT);
-        Assert.DoesNotContain("getsentry/dotagents", config.Trust!.GithubRepos);
+        config.Trust!.GithubRepos.Should().NotContain("getsentry/dotagents");
     }
 
     [Fact]
@@ -304,7 +305,7 @@ public sealed class InitCommandTests
         await InitCommand.RunInitAsync(new InitOptions(scope, Skills: []), CT);
 
         var raw = await File.ReadAllTextAsync(scope.ConfigPath, CT);
-        Assert.DoesNotContain("pin", raw);
+        raw.Should().NotContain("pin");
     }
 }
 
@@ -321,11 +322,11 @@ public sealed class InstallPostMergeHookTests
 
         var result = await InitCommand.InstallPostMergeHookAsync(gitDir, CT);
 
-        Assert.Equal("created", result);
+        result.Should().Be("created");
         var content = await File.ReadAllTextAsync(Path.Combine(gitDir, "hooks", "post-merge"), CT);
-        Assert.StartsWith("#!/bin/sh", content);
-        Assert.Contains("netagents install", content);
-        Assert.Contains("netagents:post-merge", content);
+        content.Should().StartWith("#!/bin/sh");
+        content.Should().Contain("netagents install");
+        content.Should().Contain("netagents:post-merge");
     }
 
     [Fact]
@@ -340,7 +341,7 @@ public sealed class InstallPostMergeHookTests
         if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
         {
             var mode = File.GetUnixFileMode(Path.Combine(gitDir, "hooks", "post-merge"));
-            Assert.True(mode.HasFlag(UnixFileMode.UserExecute));
+            mode.HasFlag(UnixFileMode.UserExecute).Should().BeTrue();
         }
     }
 
@@ -355,12 +356,12 @@ public sealed class InstallPostMergeHookTests
 
         var result = await InitCommand.InstallPostMergeHookAsync(gitDir, CT);
 
-        Assert.Equal("created", result);
+        result.Should().Be("created");
         var content = await File.ReadAllTextAsync(Path.Combine(hooksDir, "post-merge"), CT);
-        Assert.Contains("echo 'existing'", content);
-        Assert.Contains("netagents install", content);
+        content.Should().Contain("echo 'existing'");
+        content.Should().Contain("netagents install");
         // Only one shebang
-        Assert.Equal(1, content.Split('\n').Count(l => l.StartsWith("#!/bin/sh")));
+        content.Split('\n').Count(l => l.StartsWith("#!/bin/sh")).Should().Be(1);
     }
 
     [Fact]
@@ -373,7 +374,7 @@ public sealed class InstallPostMergeHookTests
         await InitCommand.InstallPostMergeHookAsync(gitDir, CT);
         var result = await InitCommand.InstallPostMergeHookAsync(gitDir, CT);
 
-        Assert.Equal("exists", result);
+        result.Should().Be("exists");
     }
 
     [Fact]
@@ -387,7 +388,7 @@ public sealed class InstallPostMergeHookTests
         await InitCommand.InstallPostMergeHookAsync(gitDir, CT);
 
         var content = await File.ReadAllTextAsync(Path.Combine(gitDir, "hooks", "post-merge"), CT);
-        Assert.Equal(1, content.Split("netagents:post-merge").Length - 1);
+        (content.Split("netagents:post-merge").Length - 1).Should().Be(1);
     }
 
     [Fact]
@@ -400,6 +401,6 @@ public sealed class InstallPostMergeHookTests
         await InitCommand.InstallPostMergeHookAsync(gitDir, CT);
 
         var content = await File.ReadAllTextAsync(Path.Combine(gitDir, "hooks", "post-merge"), CT);
-        Assert.Contains("dotnet tool run netagents install", content);
+        content.Should().Contain("dotnet tool run netagents install");
     }
 }

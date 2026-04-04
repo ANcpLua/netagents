@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Mcp;
 
+using AwesomeAssertions;
 using NetAgents.Tests;
 using NetAgents.Cli.Commands;
 using NetAgents.Config;
@@ -39,7 +40,7 @@ public sealed class ServerTests
         var server = new NetAgentsMcpServer();
         var result = await server.ListAsync(project, CT);
 
-        Assert.Contains("[]", result);
+        result.Should().Contain("[]");
     }
 
     [Fact]
@@ -60,8 +61,8 @@ public sealed class ServerTests
             var server = new NetAgentsMcpServer();
             var result = await server.ListAsync(project, CT);
 
-            Assert.Contains("pdf", result);
-            Assert.Contains("ok", result);
+            result.Should().Contain("pdf");
+            result.Should().Contain("ok");
         }
         finally
         {
@@ -91,9 +92,9 @@ public sealed class ServerTests
             var server = new NetAgentsMcpServer();
             var result = await server.InstallAsync(project, CT);
 
-            Assert.Contains("Installed 1 skill(s)", result);
-            Assert.Contains("pdf", result);
-            Assert.True(Directory.Exists(Path.Combine(project, ".agents", "skills", "pdf")));
+            result.Should().Contain("Installed 1 skill(s)");
+            result.Should().Contain("pdf");
+            Directory.Exists(Path.Combine(project, ".agents", "skills", "pdf")).Should().BeTrue();
         }
         finally
         {
@@ -123,7 +124,7 @@ public sealed class ServerTests
             var server = new NetAgentsMcpServer();
             var result = await server.AddAsync(project, repoDir, CT);
 
-            Assert.Contains("Added skill: pdf", result);
+            result.Should().Contain("Added skill: pdf");
         }
         finally
         {
@@ -161,7 +162,7 @@ public sealed class ServerTests
             var server = new NetAgentsMcpServer();
             var result = await server.RemoveAsync(project, "pdf", CT);
 
-            Assert.Contains("Removed skill: pdf", result);
+            result.Should().Contain("Removed skill: pdf");
         }
         finally
         {
@@ -199,8 +200,8 @@ public sealed class ServerTests
             var server = new NetAgentsMcpServer();
             var result = await server.RemoveAsync(project, "pdf", CT);
 
-            Assert.Contains("wildcard", result);
-            Assert.Contains("exclude", result);
+            result.Should().Contain("wildcard");
+            result.Should().Contain("exclude");
         }
         finally
         {
@@ -221,7 +222,7 @@ public sealed class ServerTests
         var server = new NetAgentsMcpServer();
         var result = await server.SyncAsync(project, CT);
 
-        Assert.Contains("missing", result);
+        result.Should().Contain("missing");
     }
 
     [Fact]
@@ -235,7 +236,7 @@ public sealed class ServerTests
         var server = new NetAgentsMcpServer();
         var result = await server.DoctorAsync(project, false, CT);
 
-        Assert.Contains("[", result); // contains status markers like [pass] or [fail]
+        result.Should().Contain("[");
     }
 
     private static async Task<string> CreateRepo(string parentDir, CancellationToken ct, params string[] skillPaths)

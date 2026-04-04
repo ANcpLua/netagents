@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Cli;
 
+using AwesomeAssertions;
 using NetAgents.Cli.Commands;
 using Xunit;
 
@@ -39,7 +40,7 @@ public sealed class DoctorCommandTests
         var result = await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope), CT);
 
         var check = result.Checks.First(c => c.Name == "agents.toml");
-        Assert.Equal("error", check.Status);
+        check.Status.Should().Be("error");
     }
 
     [Fact]
@@ -54,7 +55,7 @@ public sealed class DoctorCommandTests
 
         var result = await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope), CT);
 
-        Assert.True(result.Checks.All(c => c.Status == "ok"));
+        result.Checks.All(c => c.Status == "ok").Should().BeTrue();
     }
 
     [Fact]
@@ -70,7 +71,7 @@ public sealed class DoctorCommandTests
         var result = await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope), CT);
 
         var check = result.Checks.First(c => c.Name == "legacy pin field");
-        Assert.Equal("warn", check.Status);
+        check.Status.Should().Be("warn");
     }
 
     [Fact]
@@ -86,7 +87,7 @@ public sealed class DoctorCommandTests
         var result = await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope), CT);
 
         var check = result.Checks.First(c => c.Name == "legacy gitignore field");
-        Assert.Equal("warn", check.Status);
+        check.Status.Should().Be("warn");
     }
 
     [Fact]
@@ -104,7 +105,7 @@ public sealed class DoctorCommandTests
         var result = await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope), CT);
 
         var check = result.Checks.First(c => c.Name == "legacy lockfile fields");
-        Assert.Equal("warn", check.Status);
+        check.Status.Should().Be("warn");
     }
 
     [Fact]
@@ -119,7 +120,7 @@ public sealed class DoctorCommandTests
         var result = await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope), CT);
 
         var check = result.Checks.First(c => c.Name == "root .gitignore");
-        Assert.Equal("error", check.Status);
+        check.Status.Should().Be("error");
     }
 
     [Fact]
@@ -134,7 +135,7 @@ public sealed class DoctorCommandTests
         var result = await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope), CT);
 
         var check = result.Checks.First(c => c.Name == ".agents/.gitignore");
-        Assert.Equal("warn", check.Status);
+        check.Status.Should().Be("warn");
     }
 
     [Fact]
@@ -151,8 +152,8 @@ public sealed class DoctorCommandTests
         var result = await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope), CT);
 
         var check = result.Checks.First(c => c.Name == "installed skills");
-        Assert.Equal("error", check.Status);
-        Assert.Contains("pdf", check.Message);
+        check.Status.Should().Be("error");
+        check.Message.Should().Contain("pdf");
     }
 
     [Fact]
@@ -166,10 +167,10 @@ public sealed class DoctorCommandTests
 
         var result = await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope, true), CT);
 
-        Assert.True(result.Fixed > 0);
+        (result.Fixed > 0).Should().BeTrue();
         var gitignore = await File.ReadAllTextAsync(Path.Combine(tmp.Path, ".gitignore"), CT);
-        Assert.Contains("agents.lock", gitignore);
-        Assert.Contains(".agents/.gitignore", gitignore);
+        gitignore.Should().Contain("agents.lock");
+        gitignore.Should().Contain(".agents/.gitignore");
     }
 
     [Fact]
@@ -186,7 +187,7 @@ public sealed class DoctorCommandTests
 
         var content = await File.ReadAllTextAsync(Path.Combine(tmp.Path, "agents.toml"), CT);
         Assert.DoesNotMatch(@"^\s*pin\s*=", content);
-        Assert.Contains("# pinning notes", content);
+        content.Should().Contain("# pinning notes");
     }
 
     [Fact]
@@ -202,7 +203,7 @@ public sealed class DoctorCommandTests
         await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope, true), CT);
 
         var content = await File.ReadAllTextAsync(Path.Combine(tmp.Path, "agents.toml"), CT);
-        Assert.DoesNotContain("gitignore", content);
+        content.Should().NotContain("gitignore");
     }
 
     [Fact]
@@ -216,6 +217,6 @@ public sealed class DoctorCommandTests
 
         await DoctorCommand.RunDoctorAsync(new DoctorOptions(scope, true), CT);
 
-        Assert.True(File.Exists(Path.Combine(tmp.Path, ".agents", ".gitignore")));
+        File.Exists(Path.Combine(tmp.Path, ".agents", ".gitignore")).Should().BeTrue();
     }
 }

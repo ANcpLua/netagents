@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Skills;
 
+using AwesomeAssertions;
 using NetAgents.Config;
 using NetAgents.Skills;
 using Xunit;
@@ -7,373 +8,332 @@ using Xunit;
 public class ApplyDefaultRepositorySourceTests
 {
     [Fact]
-    public async Task ExpandsShorthandToGithubByDefault()
+    public void ExpandsShorthandToGithubByDefault()
     {
-        Assert.Equal(
-            "https://github.com/getsentry/skills",
-            SkillResolver.ApplyDefaultRepositorySource("getsentry/skills"));
-        await Task.CompletedTask;
+        SkillResolver.ApplyDefaultRepositorySource("getsentry/skills")
+            .Should().Be("https://github.com/getsentry/skills");
     }
 
     [Fact]
-    public async Task ExpandsShorthandToGitlabWhenConfigured()
+    public void ExpandsShorthandToGitlabWhenConfigured()
     {
-        Assert.Equal(
-            "https://gitlab.com/getsentry/skills",
-            SkillResolver.ApplyDefaultRepositorySource("getsentry/skills", RepositorySource.Gitlab));
-        await Task.CompletedTask;
+        SkillResolver.ApplyDefaultRepositorySource("getsentry/skills", RepositorySource.Gitlab)
+            .Should().Be("https://gitlab.com/getsentry/skills");
     }
 
     [Fact]
-    public async Task KeepsExplicitUrlUnchanged()
+    public void KeepsExplicitUrlUnchanged()
     {
-        Assert.Equal(
-            "https://gitlab.com/group/repo",
-            SkillResolver.ApplyDefaultRepositorySource("https://gitlab.com/group/repo"));
-        await Task.CompletedTask;
+        SkillResolver.ApplyDefaultRepositorySource("https://gitlab.com/group/repo")
+            .Should().Be("https://gitlab.com/group/repo");
     }
 }
 
 public class ParseSourceTests
 {
     [Fact]
-    public async Task ParsesOwnerRepoAsGithub()
+    public void ParsesOwnerRepoAsGithub()
     {
         var result = SkillResolver.ParseSource("anthropics/skills");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("anthropics", result.Owner);
-        Assert.Equal("skills", result.Repo);
-        Assert.Equal("https://github.com/anthropics/skills.git", result.Url);
-        Assert.Null(result.CloneUrl);
-        Assert.Null(result.Ref);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("anthropics");
+        result.Repo.Should().Be("skills");
+        result.Url.Should().Be("https://github.com/anthropics/skills.git");
+        result.CloneUrl.Should().BeNull();
+        result.Ref.Should().BeNull();
     }
 
     [Fact]
-    public async Task ParsesOwnerRepoAtRefAsGithubWithRef()
+    public void ParsesOwnerRepoAtRefAsGithubWithRef()
     {
         var result = SkillResolver.ParseSource("getsentry/sentry-skills@v1.0.0");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("getsentry", result.Owner);
-        Assert.Equal("sentry-skills", result.Repo);
-        Assert.Equal("v1.0.0", result.Ref);
-        Assert.Equal("https://github.com/getsentry/sentry-skills.git", result.Url);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("getsentry");
+        result.Repo.Should().Be("sentry-skills");
+        result.Ref.Should().Be("v1.0.0");
+        result.Url.Should().Be("https://github.com/getsentry/sentry-skills.git");
     }
 
     [Fact]
-    public async Task ParsesOwnerRepoAtShaAsGithubWithShaRef()
+    public void ParsesOwnerRepoAtShaAsGithubWithShaRef()
     {
         var result = SkillResolver.ParseSource("anthropics/skills@abc123");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("abc123", result.Ref);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Ref.Should().Be("abc123");
     }
 
     [Fact]
-    public async Task ParsesGitPrefixAsGenericGit()
+    public void ParsesGitPrefixAsGenericGit()
     {
         var result = SkillResolver.ParseSource("git:https://git.corp.example.com/team/skills.git");
-        Assert.Equal(SourceType.Git, result.Type);
-        Assert.Equal("https://git.corp.example.com/team/skills.git", result.Url);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Git);
+        result.Url.Should().Be("https://git.corp.example.com/team/skills.git");
     }
 
     [Fact]
-    public async Task ParsesPathPrefixAsLocal()
+    public void ParsesPathPrefixAsLocal()
     {
         var result = SkillResolver.ParseSource("path:../shared/my-skill");
-        Assert.Equal(SourceType.Local, result.Type);
-        Assert.Equal("../shared/my-skill", result.Path);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Local);
+        result.Path.Should().Be("../shared/my-skill");
     }
 
     [Fact]
-    public async Task ParsesHttpsGithubUrl()
+    public void ParsesHttpsGithubUrl()
     {
         var result = SkillResolver.ParseSource("https://github.com/getsentry/skills");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("getsentry", result.Owner);
-        Assert.Equal("skills", result.Repo);
-        Assert.Equal("https://github.com/getsentry/skills.git", result.Url);
-        Assert.Equal("https://github.com/getsentry/skills", result.CloneUrl);
-        Assert.Null(result.Ref);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("getsentry");
+        result.Repo.Should().Be("skills");
+        result.Url.Should().Be("https://github.com/getsentry/skills.git");
+        result.CloneUrl.Should().Be("https://github.com/getsentry/skills");
+        result.Ref.Should().BeNull();
     }
 
     [Fact]
-    public async Task ParsesHttpsGithubUrlWithGitSuffix()
+    public void ParsesHttpsGithubUrlWithGitSuffix()
     {
         var result = SkillResolver.ParseSource("https://github.com/getsentry/skills.git");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("getsentry", result.Owner);
-        Assert.Equal("skills", result.Repo);
-        Assert.Equal("https://github.com/getsentry/skills.git", result.Url);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("getsentry");
+        result.Repo.Should().Be("skills");
+        result.Url.Should().Be("https://github.com/getsentry/skills.git");
     }
 
     [Fact]
-    public async Task ParsesHttpsGithubUrlWithTrailingSlash()
+    public void ParsesHttpsGithubUrlWithTrailingSlash()
     {
         var result = SkillResolver.ParseSource("https://github.com/getsentry/skills/");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("getsentry", result.Owner);
-        Assert.Equal("skills", result.Repo);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("getsentry");
+        result.Repo.Should().Be("skills");
     }
 
     [Fact]
-    public async Task ParsesHttpsGithubUrlWithRef()
+    public void ParsesHttpsGithubUrlWithRef()
     {
         var result = SkillResolver.ParseSource("https://github.com/getsentry/skills@v1.0.0");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("getsentry", result.Owner);
-        Assert.Equal("skills", result.Repo);
-        Assert.Equal("v1.0.0", result.Ref);
-        Assert.Equal("https://github.com/getsentry/skills.git", result.Url);
-        Assert.Equal("https://github.com/getsentry/skills", result.CloneUrl);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("getsentry");
+        result.Repo.Should().Be("skills");
+        result.Ref.Should().Be("v1.0.0");
+        result.Url.Should().Be("https://github.com/getsentry/skills.git");
+        result.CloneUrl.Should().Be("https://github.com/getsentry/skills");
     }
 
     [Fact]
-    public async Task ParsesSshGithubUrl()
+    public void ParsesSshGithubUrl()
     {
         var result = SkillResolver.ParseSource("git@github.com:getsentry/skills");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("getsentry", result.Owner);
-        Assert.Equal("skills", result.Repo);
-        Assert.Equal("https://github.com/getsentry/skills.git", result.Url);
-        Assert.Equal("git@github.com:getsentry/skills", result.CloneUrl);
-        Assert.Null(result.Ref);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("getsentry");
+        result.Repo.Should().Be("skills");
+        result.Url.Should().Be("https://github.com/getsentry/skills.git");
+        result.CloneUrl.Should().Be("git@github.com:getsentry/skills");
+        result.Ref.Should().BeNull();
     }
 
     [Fact]
-    public async Task ParsesSshGithubUrlWithGitSuffix()
+    public void ParsesSshGithubUrlWithGitSuffix()
     {
         var result = SkillResolver.ParseSource("git@github.com:getsentry/skills.git");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("getsentry", result.Owner);
-        Assert.Equal("skills", result.Repo);
-        Assert.Equal("https://github.com/getsentry/skills.git", result.Url);
-        Assert.Equal("git@github.com:getsentry/skills.git", result.CloneUrl);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("getsentry");
+        result.Repo.Should().Be("skills");
+        result.Url.Should().Be("https://github.com/getsentry/skills.git");
+        result.CloneUrl.Should().Be("git@github.com:getsentry/skills.git");
     }
 
     [Fact]
-    public async Task ParsesSshGithubUrlWithRef()
+    public void ParsesSshGithubUrlWithRef()
     {
         var result = SkillResolver.ParseSource("git@github.com:getsentry/skills@v2.0");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("getsentry", result.Owner);
-        Assert.Equal("skills", result.Repo);
-        Assert.Equal("v2.0", result.Ref);
-        Assert.Equal("https://github.com/getsentry/skills.git", result.Url);
-        Assert.Equal("git@github.com:getsentry/skills", result.CloneUrl);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("getsentry");
+        result.Repo.Should().Be("skills");
+        result.Ref.Should().Be("v2.0");
+        result.Url.Should().Be("https://github.com/getsentry/skills.git");
+        result.CloneUrl.Should().Be("git@github.com:getsentry/skills");
     }
 
     [Fact]
-    public async Task ParsesHttpsGithubUrlWithDottedRepoName()
+    public void ParsesHttpsGithubUrlWithDottedRepoName()
     {
         var result = SkillResolver.ParseSource("https://github.com/vercel/next.js");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("vercel", result.Owner);
-        Assert.Equal("next.js", result.Repo);
-        Assert.Equal("https://github.com/vercel/next.js.git", result.Url);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("vercel");
+        result.Repo.Should().Be("next.js");
+        result.Url.Should().Be("https://github.com/vercel/next.js.git");
     }
 
     [Fact]
-    public async Task ParsesHttpsGithubUrlWithDottedRepoNameAndGitSuffix()
+    public void ParsesHttpsGithubUrlWithDottedRepoNameAndGitSuffix()
     {
         var result = SkillResolver.ParseSource("https://github.com/vercel/next.js.git");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("vercel", result.Owner);
-        Assert.Equal("next.js", result.Repo);
-        Assert.Equal("https://github.com/vercel/next.js.git", result.Url);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("vercel");
+        result.Repo.Should().Be("next.js");
+        result.Url.Should().Be("https://github.com/vercel/next.js.git");
     }
 
     [Fact]
-    public async Task ParsesHttpsGitlabUrl()
+    public void ParsesHttpsGitlabUrl()
     {
         var result = SkillResolver.ParseSource("https://gitlab.com/group/repo");
-        Assert.Equal(SourceType.Git, result.Type);
-        Assert.Equal("group", result.Owner);
-        Assert.Equal("repo", result.Repo);
-        Assert.Equal("https://gitlab.com/group/repo.git", result.Url);
-        Assert.Equal("https://gitlab.com/group/repo", result.CloneUrl);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Git);
+        result.Owner.Should().Be("group");
+        result.Repo.Should().Be("repo");
+        result.Url.Should().Be("https://gitlab.com/group/repo.git");
+        result.CloneUrl.Should().Be("https://gitlab.com/group/repo");
     }
 
     [Fact]
-    public async Task ParsesHttpsGitlabUrlWithSubgroup()
+    public void ParsesHttpsGitlabUrlWithSubgroup()
     {
         var result = SkillResolver.ParseSource("https://gitlab.com/group/subgroup/repo");
-        Assert.Equal(SourceType.Git, result.Type);
-        Assert.Equal("group/subgroup", result.Owner);
-        Assert.Equal("repo", result.Repo);
-        Assert.Equal("https://gitlab.com/group/subgroup/repo.git", result.Url);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Git);
+        result.Owner.Should().Be("group/subgroup");
+        result.Repo.Should().Be("repo");
+        result.Url.Should().Be("https://gitlab.com/group/subgroup/repo.git");
     }
 
     [Fact]
-    public async Task ParsesSshGitlabUrlWithRef()
+    public void ParsesSshGitlabUrlWithRef()
     {
         var result = SkillResolver.ParseSource("git@gitlab.com:group/repo@v2.0");
-        Assert.Equal(SourceType.Git, result.Type);
-        Assert.Equal("group", result.Owner);
-        Assert.Equal("repo", result.Repo);
-        Assert.Equal("v2.0", result.Ref);
-        Assert.Equal("https://gitlab.com/group/repo.git", result.Url);
-        Assert.Equal("git@gitlab.com:group/repo", result.CloneUrl);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Git);
+        result.Owner.Should().Be("group");
+        result.Repo.Should().Be("repo");
+        result.Ref.Should().Be("v2.0");
+        result.Url.Should().Be("https://gitlab.com/group/repo.git");
+        result.CloneUrl.Should().Be("git@gitlab.com:group/repo");
     }
 
     [Fact]
-    public async Task UpgradesHttpToHttpsInCloneUrl()
+    public void UpgradesHttpToHttpsInCloneUrl()
     {
         var result = SkillResolver.ParseSource("http://github.com/getsentry/skills");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("https://github.com/getsentry/skills", result.CloneUrl);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.CloneUrl.Should().Be("https://github.com/getsentry/skills");
     }
 
     [Fact]
-    public async Task DoesNotSetCloneUrlForOwnerRepoShorthand()
+    public void DoesNotSetCloneUrlForOwnerRepoShorthand()
     {
         var result = SkillResolver.ParseSource("getsentry/skills@v1.0");
-        Assert.Null(result.CloneUrl);
-        await Task.CompletedTask;
+        result.CloneUrl.Should().BeNull();
     }
 
     [Fact]
-    public async Task StripsRefContainingAtFromCloneUrlCorrectly()
+    public void StripsRefContainingAtFromCloneUrlCorrectly()
     {
         var result = SkillResolver.ParseSource("git@github.com:org/repo@packages/foo@1.0.0");
-        Assert.Equal(SourceType.Github, result.Type);
-        Assert.Equal("org", result.Owner);
-        Assert.Equal("repo", result.Repo);
-        Assert.Equal("packages/foo@1.0.0", result.Ref);
-        Assert.Equal("git@github.com:org/repo", result.CloneUrl);
-        await Task.CompletedTask;
+        result.Type.Should().Be(SourceType.Github);
+        result.Owner.Should().Be("org");
+        result.Repo.Should().Be("repo");
+        result.Ref.Should().Be("packages/foo@1.0.0");
+        result.CloneUrl.Should().Be("git@github.com:org/repo");
     }
 }
 
 public class NormalizeSourceTests
 {
     [Fact]
-    public async Task NormalizesOwnerRepoShorthandToItself()
+    public void NormalizesOwnerRepoShorthandToItself()
     {
-        Assert.Equal("getsentry/skills", SkillResolver.NormalizeSource("getsentry/skills"));
-        await Task.CompletedTask;
+        SkillResolver.NormalizeSource("getsentry/skills").Should().Be("getsentry/skills");
     }
 
     [Fact]
-    public async Task NormalizesGithubHttpsUrlToOwnerRepo()
+    public void NormalizesGithubHttpsUrlToOwnerRepo()
     {
-        Assert.Equal("getsentry/skills", SkillResolver.NormalizeSource("https://github.com/getsentry/skills"));
-        await Task.CompletedTask;
+        SkillResolver.NormalizeSource("https://github.com/getsentry/skills").Should().Be("getsentry/skills");
     }
 
     [Fact]
-    public async Task NormalizesGithubSshUrlToOwnerRepo()
+    public void NormalizesGithubSshUrlToOwnerRepo()
     {
-        Assert.Equal("getsentry/skills", SkillResolver.NormalizeSource("git@github.com:getsentry/skills.git"));
-        await Task.CompletedTask;
+        SkillResolver.NormalizeSource("git@github.com:getsentry/skills.git").Should().Be("getsentry/skills");
     }
 
     [Fact]
-    public async Task NormalizesGithubHttpsUrlWithGitSuffix()
+    public void NormalizesGithubHttpsUrlWithGitSuffix()
     {
-        Assert.Equal("getsentry/skills", SkillResolver.NormalizeSource("https://github.com/getsentry/skills.git"));
-        await Task.CompletedTask;
+        SkillResolver.NormalizeSource("https://github.com/getsentry/skills.git").Should().Be("getsentry/skills");
     }
 
     [Fact]
-    public async Task NormalizesGitlabHttpsUrlToGroupRepo()
+    public void NormalizesGitlabHttpsUrlToGroupRepo()
     {
-        Assert.Equal("group/repo", SkillResolver.NormalizeSource("https://gitlab.com/group/repo"));
-        await Task.CompletedTask;
+        SkillResolver.NormalizeSource("https://gitlab.com/group/repo").Should().Be("group/repo");
     }
 
     [Fact]
-    public async Task NormalizesGitlabSshUrlToGroupRepo()
+    public void NormalizesGitlabSshUrlToGroupRepo()
     {
-        Assert.Equal("group/repo", SkillResolver.NormalizeSource("git@gitlab.com:group/repo.git"));
-        await Task.CompletedTask;
+        SkillResolver.NormalizeSource("git@gitlab.com:group/repo.git").Should().Be("group/repo");
     }
 
     [Fact]
-    public async Task ReturnsNonGithubSourcesUnchanged()
+    public void ReturnsNonGithubSourcesUnchanged()
     {
-        Assert.Equal("path:../my-skill", SkillResolver.NormalizeSource("path:../my-skill"));
-        Assert.Equal("git:https://example.com/repo.git",
-            SkillResolver.NormalizeSource("git:https://example.com/repo.git"));
-        await Task.CompletedTask;
+        SkillResolver.NormalizeSource("path:../my-skill").Should().Be("path:../my-skill");
+        SkillResolver.NormalizeSource("git:https://example.com/repo.git")
+            .Should().Be("git:https://example.com/repo.git");
     }
 }
 
 public class SourcesMatchTests
 {
     [Fact]
-    public async Task MatchesIdenticalShorthand()
+    public void MatchesIdenticalShorthand()
     {
-        Assert.True(SkillResolver.SourcesMatch("getsentry/skills", "getsentry/skills"));
-        await Task.CompletedTask;
+        SkillResolver.SourcesMatch("getsentry/skills", "getsentry/skills").Should().BeTrue();
     }
 
     [Fact]
-    public async Task MatchesSshUrlWithShorthand()
+    public void MatchesSshUrlWithShorthand()
     {
-        Assert.True(SkillResolver.SourcesMatch("git@github.com:getsentry/skills.git", "getsentry/skills"));
-        await Task.CompletedTask;
+        SkillResolver.SourcesMatch("git@github.com:getsentry/skills.git", "getsentry/skills").Should().BeTrue();
     }
 
     [Fact]
-    public async Task MatchesHttpsUrlWithShorthand()
+    public void MatchesHttpsUrlWithShorthand()
     {
-        Assert.True(SkillResolver.SourcesMatch("https://github.com/getsentry/skills", "getsentry/skills"));
-        await Task.CompletedTask;
+        SkillResolver.SourcesMatch("https://github.com/getsentry/skills", "getsentry/skills").Should().BeTrue();
     }
 
     [Fact]
-    public async Task MatchesGitlabUrlWithShorthand()
+    public void MatchesGitlabUrlWithShorthand()
     {
-        Assert.True(SkillResolver.SourcesMatch("https://gitlab.com/getsentry/skills", "getsentry/skills"));
-        await Task.CompletedTask;
+        SkillResolver.SourcesMatch("https://gitlab.com/getsentry/skills", "getsentry/skills").Should().BeTrue();
     }
 
     [Fact]
-    public async Task MatchesSshUrlWithHttpsUrl()
+    public void MatchesSshUrlWithHttpsUrl()
     {
-        Assert.True(SkillResolver.SourcesMatch(
+        SkillResolver.SourcesMatch(
             "git@github.com:getsentry/skills.git",
-            "https://github.com/getsentry/skills"));
-        await Task.CompletedTask;
+            "https://github.com/getsentry/skills").Should().BeTrue();
     }
 
     [Fact]
-    public async Task MatchesGitlabSshUrlWithGitlabHttpsUrl()
+    public void MatchesGitlabSshUrlWithGitlabHttpsUrl()
     {
-        Assert.True(SkillResolver.SourcesMatch(
+        SkillResolver.SourcesMatch(
             "git@gitlab.com:group/repo.git",
-            "https://gitlab.com/group/repo"));
-        await Task.CompletedTask;
+            "https://gitlab.com/group/repo").Should().BeTrue();
     }
 
     [Fact]
-    public async Task DoesNotMatchDifferentRepos()
+    public void DoesNotMatchDifferentRepos()
     {
-        Assert.False(SkillResolver.SourcesMatch("getsentry/skills", "getsentry/other"));
-        await Task.CompletedTask;
+        SkillResolver.SourcesMatch("getsentry/skills", "getsentry/other").Should().BeFalse();
     }
 
     [Fact]
-    public async Task DoesNotMatchDifferentOwners()
+    public void DoesNotMatchDifferentOwners()
     {
-        Assert.False(SkillResolver.SourcesMatch("getsentry/skills", "anthropics/skills"));
-        await Task.CompletedTask;
+        SkillResolver.SourcesMatch("getsentry/skills", "anthropics/skills").Should().BeFalse();
     }
 }

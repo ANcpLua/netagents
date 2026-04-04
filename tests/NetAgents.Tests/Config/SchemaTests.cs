@@ -1,5 +1,6 @@
 namespace NetAgents.Tests.Config;
 
+using AwesomeAssertions;
 using NetAgents.Config;
 using Xunit;
 
@@ -10,16 +11,7 @@ public class SchemaTests
 
     private static AgentsConfig Minimal()
     {
-        return new AgentsConfig(
-            1,
-            RepositorySource.Github,
-            null,
-            null,
-            [],
-            [],
-            [],
-            [],
-            null);
+        return new AgentsConfig(1, RepositorySource.Github, null, null, [], [], [], [], null);
     }
 
     private static AgentsConfig WithSkill(string name, string source)
@@ -39,21 +31,21 @@ public class SchemaTests
     {
         var cfg = Minimal();
         AgentsConfigValidator.Validate(cfg);
-        Assert.Equal(1, cfg.Version);
-        Assert.Empty(cfg.Skills);
+        cfg.Version.Should().Be(1);
+        cfg.Skills.Should().BeEmpty();
     }
 
     [Fact]
     public void DefaultsDefaultRepositorySourceToGithub()
     {
-        Assert.Equal(RepositorySource.Github, Minimal().DefaultRepositorySource);
+        Minimal().DefaultRepositorySource.Should().Be(RepositorySource.Github);
     }
 
     [Fact]
     public void AcceptsDefaultRepositorySourceGitlab()
     {
         var cfg = Minimal() with { DefaultRepositorySource = RepositorySource.Gitlab };
-        Assert.Equal(RepositorySource.Gitlab, cfg.DefaultRepositorySource);
+        cfg.DefaultRepositorySource.Should().Be(RepositorySource.Gitlab);
     }
 
     [Fact]
@@ -70,9 +62,9 @@ public class SchemaTests
             ]
         };
         AgentsConfigValidator.Validate(cfg);
-        Assert.Equal("test-project", cfg.Project?.Name);
-        Assert.Equal([".claude", ".cursor"], cfg.Symlinks?.Targets);
-        Assert.Equal(2, cfg.Skills.Count);
+        cfg.Project?.Name.Should().Be("test-project");
+        cfg.Symlinks?.Targets.Should().BeEquivalentTo([".claude", ".cursor"]);
+        cfg.Skills.Count.Should().Be(2);
     }
 
     [Fact]
@@ -85,9 +77,9 @@ public class SchemaTests
     // ── Source specifiers ─────────────────────────────────────────────────────
 
     [Theory]
-    [InlineData("anthropics/skills")] // owner/repo
-    [InlineData("anthropics/skills@v1.0.0")] // owner/repo@ref
-    [InlineData("anthropics/skills@abc123")] // owner/repo@sha
+    [InlineData("anthropics/skills")]
+    [InlineData("anthropics/skills@v1.0.0")]
+    [InlineData("anthropics/skills@abc123")]
     [InlineData("git:https://example.com/repo.git")]
     [InlineData("git:ssh://git@example.com/repo.git")]
     [InlineData("git:git@github.com:owner/repo.git")]
@@ -101,20 +93,20 @@ public class SchemaTests
     [InlineData("https://gitlab.com/group/subgroup/repo")]
     public void AcceptsValidSource(string source)
     {
-        Assert.True(SkillDependencyHelpers.IsValidSkillSource(source), $"expected '{source}' to be valid");
+        SkillDependencyHelpers.IsValidSkillSource(source).Should().BeTrue($"expected '{source}' to be valid");
     }
 
     [Theory]
-    [InlineData("git:--upload-pack=evil")] // git: without safe protocol
-    [InlineData("git:relative/path")] // git: with bare relative path
-    [InlineData("just-a-name")] // no slash
-    [InlineData("-bad/repo")] // owner starts with dash
-    [InlineData("owner/-bad")] // repo starts with dash
-    [InlineData("a/b/c")] // three-part path
-    [InlineData("https://github.com/-bad/repo")] // GitHub URL with dash-prefixed owner
+    [InlineData("git:--upload-pack=evil")]
+    [InlineData("git:relative/path")]
+    [InlineData("just-a-name")]
+    [InlineData("-bad/repo")]
+    [InlineData("owner/-bad")]
+    [InlineData("a/b/c")]
+    [InlineData("https://github.com/-bad/repo")]
     public void RejectsInvalidSource(string source)
     {
-        Assert.False(SkillDependencyHelpers.IsValidSkillSource(source), $"expected '{source}' to be invalid");
+        SkillDependencyHelpers.IsValidSkillSource(source).Should().BeFalse($"expected '{source}' to be invalid");
     }
 
     // ── Skill name validation ─────────────────────────────────────────────────
@@ -126,7 +118,7 @@ public class SchemaTests
     [InlineData("find-bugs")]
     public void AcceptsValidSkillNames(string name)
     {
-        Assert.True(SkillDependencyHelpers.IsValidSkillName(name));
+        SkillDependencyHelpers.IsValidSkillName(name).Should().BeTrue();
     }
 
     [Theory]
@@ -137,7 +129,7 @@ public class SchemaTests
     [InlineData("-bad")]
     public void RejectsInvalidSkillNames(string name)
     {
-        Assert.False(SkillDependencyHelpers.IsValidSkillName(name));
+        SkillDependencyHelpers.IsValidSkillName(name).Should().BeFalse();
     }
 
     [Fact]
@@ -155,14 +147,14 @@ public class SchemaTests
     [Fact]
     public void AgentsDefaultsToEmpty()
     {
-        Assert.Empty(Minimal().Agents);
+        Minimal().Agents.Should().BeEmpty();
     }
 
     [Fact]
     public void AcceptsValidAgentIds()
     {
         var cfg = Minimal() with { Agents = ["claude", "cursor"] };
-        Assert.Equal(["claude", "cursor"], cfg.Agents);
+        cfg.Agents.Should().BeEquivalentTo(["claude", "cursor"]);
     }
 
     // ── mcp field ─────────────────────────────────────────────────────────────
@@ -170,7 +162,7 @@ public class SchemaTests
     [Fact]
     public void McpDefaultsToEmpty()
     {
-        Assert.Empty(Minimal().Mcp);
+        Minimal().Mcp.Should().BeEmpty();
     }
 
     [Fact]
@@ -178,8 +170,8 @@ public class SchemaTests
     {
         var cfg = WithMcp(new McpConfig("github", "npx", ["-y", "@mcp/server-github"], null, null, []));
         AgentsConfigValidator.Validate(cfg);
-        Assert.Equal("github", cfg.Mcp[0].Name);
-        Assert.Equal("npx", cfg.Mcp[0].Command);
+        cfg.Mcp[0].Name.Should().Be("github");
+        cfg.Mcp[0].Command.Should().Be("npx");
     }
 
     [Fact]
@@ -187,7 +179,7 @@ public class SchemaTests
     {
         var cfg = WithMcp(new McpConfig("remote", null, null, "https://mcp.example.com/sse", null, []));
         AgentsConfigValidator.Validate(cfg);
-        Assert.Equal("https://mcp.example.com/sse", cfg.Mcp[0].Url);
+        cfg.Mcp[0].Url.Should().Be("https://mcp.example.com/sse");
     }
 
     [Fact]
@@ -195,7 +187,7 @@ public class SchemaTests
     {
         var cfg = WithMcp(new McpConfig("gh", "npx", [], null, null, ["GITHUB_TOKEN"]));
         AgentsConfigValidator.Validate(cfg);
-        Assert.Equal(["GITHUB_TOKEN"], cfg.Mcp[0].Env);
+        cfg.Mcp[0].Env.Should().BeEquivalentTo(["GITHUB_TOKEN"]);
     }
 
     [Fact]
@@ -236,7 +228,7 @@ public class SchemaTests
             ["git.corp.example.com"]);
         var cfg = Minimal() with { Trust = trust };
         AgentsConfigValidator.Validate(cfg);
-        Assert.Equal(trust, cfg.Trust);
+        cfg.Trust.Should().Be(trust);
     }
 
     [Fact]
@@ -245,22 +237,22 @@ public class SchemaTests
         var trust = new TrustConfig(false, ["getsentry"], [], []);
         var cfg = Minimal() with { Trust = trust };
         AgentsConfigValidator.Validate(cfg);
-        Assert.Equal(["getsentry"], cfg.Trust!.GithubOrgs);
-        Assert.Empty(cfg.Trust.GithubRepos);
-        Assert.Empty(cfg.Trust.GitDomains);
+        cfg.Trust!.GithubOrgs.Should().BeEquivalentTo(["getsentry"]);
+        cfg.Trust.GithubRepos.Should().BeEmpty();
+        cfg.Trust.GitDomains.Should().BeEmpty();
     }
 
     [Fact]
     public void ParsesAllowAllTrue()
     {
         var cfg = Minimal() with { Trust = new TrustConfig(true, [], [], []) };
-        Assert.True(cfg.Trust?.AllowAll);
+        cfg.Trust?.AllowAll.Should().BeTrue();
     }
 
     [Fact]
     public void TrustIsNullWhenAbsent()
     {
-        Assert.Null(Minimal().Trust);
+        Minimal().Trust.Should().BeNull();
     }
 
     // ── backward compatibility ─────────────────────────────────────────────────
@@ -270,8 +262,8 @@ public class SchemaTests
     {
         var cfg = Minimal() with { Skills = [new RegularSkillDependency("test", "owner/repo", null, null)] };
         AgentsConfigValidator.Validate(cfg);
-        Assert.Empty(cfg.Agents);
-        Assert.Empty(cfg.Mcp);
-        Assert.Single(cfg.Skills);
+        cfg.Agents.Should().BeEmpty();
+        cfg.Mcp.Should().BeEmpty();
+        cfg.Skills.Should().ContainSingle();
     }
 }

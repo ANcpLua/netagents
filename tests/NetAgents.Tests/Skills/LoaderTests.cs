@@ -1,12 +1,12 @@
 namespace NetAgents.Tests.Skills;
 
+using AwesomeAssertions;
 using NetAgents.Skills;
 using Xunit;
 
 public class LoaderTests : IAsyncLifetime
 {
     private string _dir = null!;
-
     private CancellationToken CT => TestContext.Current.CancellationToken;
 
     public async ValueTask InitializeAsync()
@@ -18,8 +18,7 @@ public class LoaderTests : IAsyncLifetime
 
     public async ValueTask DisposeAsync()
     {
-        if (Directory.Exists(_dir))
-            Directory.Delete(_dir, true);
+        if (Directory.Exists(_dir)) Directory.Delete(_dir, true);
         await ValueTask.CompletedTask;
     }
 
@@ -41,9 +40,9 @@ public class LoaderTests : IAsyncLifetime
 
         var meta = await SkillLoader.LoadSkillMdAsync(skillMd, CT);
 
-        Assert.Equal("pdf-processing", meta.Name);
-        Assert.Equal("Extract and process PDF documents", meta.Description);
-        Assert.Equal("MIT", meta.Extra["license"]);
+        meta.Name.Should().Be("pdf-processing");
+        meta.Description.Should().Be("Extract and process PDF documents");
+        meta.Extra["license"].Should().Be("MIT");
     }
 
     [Fact]
@@ -61,8 +60,8 @@ public class LoaderTests : IAsyncLifetime
 
         var meta = await SkillLoader.LoadSkillMdAsync(skillMd, CT);
 
-        Assert.Equal("my-skill", meta.Name);
-        Assert.Equal("A skill with quoted values", meta.Description);
+        meta.Name.Should().Be("my-skill");
+        meta.Description.Should().Be("A skill with quoted values");
     }
 
     [Fact]
@@ -77,7 +76,6 @@ public class LoaderTests : IAsyncLifetime
     {
         var skillMd = Path.Combine(_dir, "SKILL.md");
         await File.WriteAllTextAsync(skillMd, "# No frontmatter here\n", CT);
-
         await Assert.ThrowsAsync<SkillLoadException>(() => SkillLoader.LoadSkillMdAsync(skillMd, CT));
     }
 
@@ -86,7 +84,6 @@ public class LoaderTests : IAsyncLifetime
     {
         var skillMd = Path.Combine(_dir, "SKILL.md");
         await File.WriteAllTextAsync(skillMd, "---\ndescription: No name field\n---\n", CT);
-
         await Assert.ThrowsAsync<SkillLoadException>(() => SkillLoader.LoadSkillMdAsync(skillMd, CT));
     }
 
@@ -95,7 +92,6 @@ public class LoaderTests : IAsyncLifetime
     {
         var skillMd = Path.Combine(_dir, "SKILL.md");
         await File.WriteAllTextAsync(skillMd, "---\nname: my-skill\n---\n", CT);
-
         await Assert.ThrowsAsync<SkillLoadException>(() => SkillLoader.LoadSkillMdAsync(skillMd, CT));
     }
 }

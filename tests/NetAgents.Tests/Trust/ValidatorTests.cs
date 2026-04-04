@@ -1,10 +1,9 @@
 namespace NetAgents.Tests.Trust;
 
+using AwesomeAssertions;
 using NetAgents.Config;
 using NetAgents.Trust;
 using Xunit;
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 file static class TrustHelper
 {
@@ -18,160 +17,132 @@ file static class TrustHelper
     }
 }
 
-// ── ValidateTrustedSource ────────────────────────────────────────────────────
-
 public class ValidateTrustedSourceTests
 {
     [Fact]
-    public async Task AllowsEverythingWhenTrustConfigIsNull()
+    public void AllowsEverythingWhenTrustConfigIsNull()
     {
-        await Task.CompletedTask;
         TrustValidator.ValidateTrustedSource("evil/repo", null);
         TrustValidator.ValidateTrustedSource("git:https://evil.com/repo.git", null);
         TrustValidator.ValidateTrustedSource("path:../local", null);
     }
 
     [Fact]
-    public async Task AllowsEverythingWhenAllowAllIsTrue()
+    public void AllowsEverythingWhenAllowAllIsTrue()
     {
-        await Task.CompletedTask;
         var trust = TrustHelper.MakeTrust(true);
         TrustValidator.ValidateTrustedSource("evil/repo", trust);
         TrustValidator.ValidateTrustedSource("git:https://evil.com/repo.git", trust);
     }
 
     [Fact]
-    public async Task AllowsEverythingWhenAllowAllIsTrueEvenWithOtherRules()
+    public void AllowsEverythingWhenAllowAllIsTrueEvenWithOtherRules()
     {
-        await Task.CompletedTask;
         var trust = TrustHelper.MakeTrust(true, ["getsentry"]);
         TrustValidator.ValidateTrustedSource("evil/repo", trust);
     }
 }
-
-// ── github_orgs ──────────────────────────────────────────────────────────────
 
 public class GithubOrgsTests
 {
     private readonly TrustConfig _trust = TrustHelper.MakeTrust(githubOrgs: ["getsentry", "anthropics"]);
 
     [Fact]
-    public async Task AllowsMatchingOrgs()
+    public void AllowsMatchingOrgs()
     {
-        await Task.CompletedTask;
         TrustValidator.ValidateTrustedSource("getsentry/skills", _trust);
         TrustValidator.ValidateTrustedSource("anthropics/tools", _trust);
     }
 
     [Fact]
-    public async Task RejectsNonMatchingOrgs()
+    public void RejectsNonMatchingOrgs()
     {
-        await Task.CompletedTask;
         Assert.Throws<TrustException>(() => TrustValidator.ValidateTrustedSource("evil/repo", _trust));
     }
 
     [Fact]
-    public async Task StripsRefBeforeChecking()
+    public void StripsRefBeforeChecking()
     {
-        await Task.CompletedTask;
         TrustValidator.ValidateTrustedSource("getsentry/skills@v1.0.0", _trust);
         Assert.Throws<TrustException>(() => TrustValidator.ValidateTrustedSource("evil/repo@main", _trust));
     }
 }
-
-// ── github_repos ─────────────────────────────────────────────────────────────
 
 public class GithubReposTests
 {
     private readonly TrustConfig _trust = TrustHelper.MakeTrust(githubRepos: ["external-org/one-approved"]);
 
     [Fact]
-    public async Task AllowsExactRepoMatches()
+    public void AllowsExactRepoMatches()
     {
-        await Task.CompletedTask;
         TrustValidator.ValidateTrustedSource("external-org/one-approved", _trust);
     }
 
     [Fact]
-    public async Task RejectsSameOrgDifferentRepo()
+    public void RejectsSameOrgDifferentRepo()
     {
-        await Task.CompletedTask;
         Assert.Throws<TrustException>(() => TrustValidator.ValidateTrustedSource("external-org/other-repo", _trust));
     }
 
     [Fact]
-    public async Task RejectsDifferentOrgSameRepo()
+    public void RejectsDifferentOrgSameRepo()
     {
-        await Task.CompletedTask;
         Assert.Throws<TrustException>(() => TrustValidator.ValidateTrustedSource("other-org/one-approved", _trust));
     }
 
     [Fact]
-    public async Task StripsRefBeforeChecking()
+    public void StripsRefBeforeChecking()
     {
-        await Task.CompletedTask;
         TrustValidator.ValidateTrustedSource("external-org/one-approved@v2", _trust);
     }
 }
-
-// ── git_domains ──────────────────────────────────────────────────────────────
 
 public class GitDomainsTests
 {
     private readonly TrustConfig _trust = TrustHelper.MakeTrust(gitDomains: ["git.corp.example.com"]);
 
     [Fact]
-    public async Task AllowsMatchingDomainsHttps()
+    public void AllowsMatchingDomainsHttps()
     {
-        await Task.CompletedTask;
         TrustValidator.ValidateTrustedSource("git:https://git.corp.example.com/team/repo.git", _trust);
     }
 
     [Fact]
-    public async Task AllowsMatchingDomainsSsh()
+    public void AllowsMatchingDomainsSsh()
     {
-        await Task.CompletedTask;
         TrustValidator.ValidateTrustedSource("git:ssh://git.corp.example.com/team/repo.git", _trust);
     }
 
     [Fact]
-    public async Task AllowsMatchingDomainsScpStyle()
+    public void AllowsMatchingDomainsScpStyle()
     {
-        await Task.CompletedTask;
         TrustValidator.ValidateTrustedSource("git:git@git.corp.example.com:team/repo.git", _trust);
     }
 
     [Fact]
-    public async Task RejectsNonMatchingDomains()
+    public void RejectsNonMatchingDomains()
     {
-        await Task.CompletedTask;
         Assert.Throws<TrustException>(() =>
             TrustValidator.ValidateTrustedSource("git:https://evil.com/repo.git", _trust));
     }
 
     [Fact]
-    public async Task AllowsDirectGitLabUrlsWhenDomainIsTrusted()
+    public void AllowsDirectGitLabUrlsWhenDomainIsTrusted()
     {
-        await Task.CompletedTask;
         var gitlabTrust = TrustHelper.MakeTrust(gitDomains: ["gitlab.com"]);
         TrustValidator.ValidateTrustedSource("https://gitlab.com/group/repo", gitlabTrust);
     }
 }
 
-// ── local sources ────────────────────────────────────────────────────────────
-
 public class LocalSourceTests
 {
     [Fact]
-    public async Task AlwaysAllowsPathSourcesEvenWithRestrictiveTrust()
+    public void AlwaysAllowsPathSourcesEvenWithRestrictiveTrust()
     {
-        await Task.CompletedTask;
         var trust = TrustHelper.MakeTrust(githubOrgs: ["getsentry"]);
         TrustValidator.ValidateTrustedSource("path:../local-skill", trust);
     }
 }
-
-// ── combined rules ───────────────────────────────────────────────────────────
 
 public class CombinedRulesTests
 {
@@ -181,152 +152,129 @@ public class CombinedRulesTests
         gitDomains: ["git.corp.com"]);
 
     [Fact]
-    public async Task AllowsSourceMatchingOrgRule()
+    public void AllowsSourceMatchingOrgRule()
     {
-        await Task.CompletedTask;
         TrustValidator.ValidateTrustedSource("getsentry/anything", _trust);
     }
 
     [Fact]
-    public async Task AllowsSourceMatchingRepoRule()
+    public void AllowsSourceMatchingRepoRule()
     {
-        await Task.CompletedTask;
         TrustValidator.ValidateTrustedSource("external/approved", _trust);
     }
 
     [Fact]
-    public async Task AllowsSourceMatchingDomainRule()
+    public void AllowsSourceMatchingDomainRule()
     {
-        await Task.CompletedTask;
         TrustValidator.ValidateTrustedSource("git:https://git.corp.com/team/repo.git", _trust);
     }
 
     [Fact]
-    public async Task RejectsSourceMatchingNone()
+    public void RejectsSourceMatchingNone()
     {
-        await Task.CompletedTask;
         Assert.Throws<TrustException>(() => TrustValidator.ValidateTrustedSource("evil/repo", _trust));
     }
 }
 
-// ── case-insensitive matching ────────────────────────────────────────────────
-
 public class CaseInsensitiveMatchingTests
 {
     [Fact]
-    public async Task MatchesGithubOrgsCaseInsensitively()
+    public void MatchesGithubOrgsCaseInsensitively()
     {
-        await Task.CompletedTask;
         var trust = TrustHelper.MakeTrust(githubOrgs: ["getsentry"]);
         TrustValidator.ValidateTrustedSource("GetSentry/repo", trust);
         TrustValidator.ValidateTrustedSource("GETSENTRY/repo", trust);
     }
 
     [Fact]
-    public async Task MatchesGithubReposCaseInsensitively()
+    public void MatchesGithubReposCaseInsensitively()
     {
-        await Task.CompletedTask;
         var trust = TrustHelper.MakeTrust(githubRepos: ["MyOrg/MyRepo"]);
         TrustValidator.ValidateTrustedSource("myorg/myrepo", trust);
         TrustValidator.ValidateTrustedSource("MYORG/MYREPO", trust);
     }
 
     [Fact]
-    public async Task MatchesGitDomainsCaseInsensitively()
+    public void MatchesGitDomainsCaseInsensitively()
     {
-        await Task.CompletedTask;
         var trust = TrustHelper.MakeTrust(gitDomains: ["git.corp.example.com"]);
         TrustValidator.ValidateTrustedSource("git:https://Git.Corp.Example.COM/repo.git", trust);
     }
 }
 
-// ── error messages ───────────────────────────────────────────────────────────
-
 public class ErrorMessageTests
 {
     [Fact]
-    public async Task IncludesTheRejectedSource()
+    public void IncludesTheRejectedSource()
     {
-        await Task.CompletedTask;
         var trust = TrustHelper.MakeTrust(githubOrgs: ["getsentry"]);
         var ex = Assert.Throws<TrustException>(() => TrustValidator.ValidateTrustedSource("evil/repo", trust));
-        Assert.Contains("evil/repo", ex.Message);
+        ex.Message.Should().Contain("evil/repo");
     }
 
     [Fact]
-    public async Task IncludesAllowedAlternatives()
+    public void IncludesAllowedAlternatives()
     {
-        await Task.CompletedTask;
         var trust = TrustHelper.MakeTrust(githubOrgs: ["getsentry"], githubRepos: ["ext/one"]);
         var ex = Assert.Throws<TrustException>(() => TrustValidator.ValidateTrustedSource("evil/repo", trust));
-        Assert.Contains("getsentry", ex.Message);
-        Assert.Contains("ext/one", ex.Message);
+        ex.Message.Should().Contain("getsentry");
+        ex.Message.Should().Contain("ext/one");
     }
 
     [Fact]
-    public async Task SuggestsNetagentsTrustAddForGithubSources()
+    public void SuggestsNetagentsTrustAddForGithubSources()
     {
-        await Task.CompletedTask;
         var trust = TrustHelper.MakeTrust(githubOrgs: ["getsentry"]);
         var ex = Assert.Throws<TrustException>(() => TrustValidator.ValidateTrustedSource("evil/repo", trust));
-        Assert.Contains("netagents trust add evil", ex.Message);
-        Assert.Contains("netagents trust add evil/repo", ex.Message);
+        ex.Message.Should().Contain("netagents trust add evil");
+        ex.Message.Should().Contain("netagents trust add evil/repo");
     }
 
     [Fact]
-    public async Task SuggestsNetagentsTrustAddForGitDomainSources()
+    public void SuggestsNetagentsTrustAddForGitDomainSources()
     {
-        await Task.CompletedTask;
         var trust = TrustHelper.MakeTrust(gitDomains: ["git.corp.com"]);
         var ex = Assert.Throws<TrustException>(() =>
             TrustValidator.ValidateTrustedSource("git:https://evil.com/repo.git", trust));
-        Assert.Contains("netagents trust add evil.com", ex.Message);
+        ex.Message.Should().Contain("netagents trust add evil.com");
     }
 }
-
-// ── ExtractDomain ────────────────────────────────────────────────────────────
 
 public class ExtractDomainTests
 {
     [Fact]
-    public async Task ExtractsFromHttpsUrl()
+    public void ExtractsFromHttpsUrl()
     {
-        await Task.CompletedTask;
-        Assert.Equal("git.corp.com", TrustValidator.ExtractDomain("https://git.corp.com/team/repo.git"));
+        TrustValidator.ExtractDomain("https://git.corp.com/team/repo.git").Should().Be("git.corp.com");
     }
 
     [Fact]
-    public async Task ExtractsFromSshUrl()
+    public void ExtractsFromSshUrl()
     {
-        await Task.CompletedTask;
-        Assert.Equal("git.corp.com", TrustValidator.ExtractDomain("ssh://git.corp.com/team/repo.git"));
+        TrustValidator.ExtractDomain("ssh://git.corp.com/team/repo.git").Should().Be("git.corp.com");
     }
 
     [Fact]
-    public async Task ExtractsFromGitProtocolUrl()
+    public void ExtractsFromGitProtocolUrl()
     {
-        await Task.CompletedTask;
-        Assert.Equal("git.corp.com", TrustValidator.ExtractDomain("git://git.corp.com/team/repo.git"));
+        TrustValidator.ExtractDomain("git://git.corp.com/team/repo.git").Should().Be("git.corp.com");
     }
 
     [Fact]
-    public async Task ExtractsFromScpStyleUrl()
+    public void ExtractsFromScpStyleUrl()
     {
-        await Task.CompletedTask;
-        Assert.Equal("github.com", TrustValidator.ExtractDomain("git@github.com:owner/repo.git"));
+        TrustValidator.ExtractDomain("git@github.com:owner/repo.git").Should().Be("github.com");
     }
 
     [Fact]
-    public async Task ReturnsNullForFileUrls()
+    public void ReturnsNullForFileUrls()
     {
-        await Task.CompletedTask;
-        Assert.Null(TrustValidator.ExtractDomain("file:///tmp/repo"));
+        TrustValidator.ExtractDomain("file:///tmp/repo").Should().BeNull();
     }
 
     [Fact]
-    public async Task ReturnsNullForBarePaths()
+    public void ReturnsNullForBarePaths()
     {
-        await Task.CompletedTask;
-        Assert.Null(TrustValidator.ExtractDomain("/tmp/local-repo"));
+        TrustValidator.ExtractDomain("/tmp/local-repo").Should().BeNull();
     }
 }
