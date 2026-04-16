@@ -6,8 +6,8 @@
     <MicrosoftNETTestSdkVersion>18.3.0</MicrosoftNETTestSdkVersion>
     <AwesomeAssertionsVersion>9.4.0</AwesomeAssertionsVersion>
     <RoslynVersion>5.3.0</RoslynVersion>
-    <MicrosoftExtensionsAIAbstractionsVersion>10.4.1</MicrosoftExtensionsAIAbstractionsVersion>
+    <MicrosoftExtensionsAIAbstractionsVersion>10.5.0</MicrosoftExtensionsAIAbstractionsVersion>
     <OpenAIVersion>2.10.0</OpenAIVersion>
-    <MicrosoftExtensionsAIOpenAIVersion>10.4.1</MicrosoftExtensionsAIOpenAIVersion>
+    <MicrosoftExtensionsAIOpenAIVersion>10.5.0</MicrosoftExtensionsAIOpenAIVersion>
   </PropertyGroup>
 </Project>
