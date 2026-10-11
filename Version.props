@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <TomlynVersion>2.3.0</TomlynVersion>
-    <SpectreConsoleVersion>0.55.0</SpectreConsoleVersion>
+    <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
     <XunitV3Version>3.2.2</XunitV3Version>
     <MicrosoftNETTestSdkVersion>18.3.0</MicrosoftNETTestSdkVersion>
     <AwesomeAssertionsVersion>9.4.0</AwesomeAssertionsVersion>
