@@ -2,9 +2,9 @@
   <PropertyGroup>
     <TomlynVersion>2.10.1</TomlynVersion>
     <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
-    <XunitV3Version>3.2.2</XunitV3Version>
+    <XunitV3Version>4.0.2</XunitV3Version>
     <MicrosoftNETTestSdkVersion>18.3.0</MicrosoftNETTestSdkVersion>
-    <AwesomeAssertionsVersion>9.4.0</AwesomeAssertionsVersion>
+    <AwesomeAssertionsVersion>9.6.0</AwesomeAssertionsVersion>
     <RoslynVersion>5.9.0</RoslynVersion>
     <MicrosoftExtensionsAIAbstractionsVersion>10.11.0</MicrosoftExtensionsAIAbstractionsVersion>
     <OpenAIVersion>2.14.0</OpenAIVersion>
