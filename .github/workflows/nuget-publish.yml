@@ -61,7 +61,7 @@ jobs:
         with:
           repository: ANcpLua/ANcpLua.Roslyn.Utilities
           path: ANcpLua.Roslyn.Utilities
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: ANcpLua-netagents/global.json
       - name: Build
@@ -100,7 +100,7 @@ jobs:
         with:
           repository: ANcpLua/ANcpLua.Roslyn.Utilities
           path: ANcpLua.Roslyn.Utilities
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: ANcpLua-netagents/global.json
       - name: Test NetAgents
@@ -133,7 +133,7 @@ jobs:
         with:
           name: packages
           path: artifacts/
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
       - name: Authenticate to NuGet (trusted publishing)
         id: login
         uses: NuGet/login@v1
