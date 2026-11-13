@@ -28,7 +28,7 @@ jobs:
       version: ${{ steps.ver.outputs.version }}
       is_release: ${{ steps.ver.outputs.is_release }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           path: ANcpLua-netagents
@@ -54,10 +54,10 @@ jobs:
     needs: version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: ANcpLua-netagents
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: ANcpLua/ANcpLua.Roslyn.Utilities
           path: ANcpLua.Roslyn.Utilities
@@ -93,10 +93,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: ANcpLua-netagents
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: ANcpLua/ANcpLua.Roslyn.Utilities
           path: ANcpLua.Roslyn.Utilities
